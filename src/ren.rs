@@ -3,19 +3,37 @@ use log::{error, info, warn};
 use markdown_ppp::parser::*;
 use markdown_ppp::typst_printer::config::Config;
 use markdown_ppp::typst_printer::render_typst;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use crate::config::{DataJson, Problem};
+use crate::{config::DataJson, context};
 
 #[derive(Args, Debug)]
 #[command(version)]
-pub struct RenArgs {}
+pub struct RenArgs {
+    /// 渲染目标
+    target: String,
+}
 
 pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
     info!("检查Typst编译环境");
+
+    let template_dir = context::get_context().template_dirs.iter().find(|dir| {
+        let subdir = dir.join(&args.target);
+        subdir.exists() && subdir.is_dir()
+    });
+
+    let template_dir = match template_dir {
+        Some(dir) => {
+            info!("找到模板目录: {}", dir.join(&args.target).to_string_lossy());
+            dir.join(&args.target)
+        }
+        None => {
+            error!("没有找到模板 {}", args.target);
+            return Err("没有找到模板".into());
+        }
+    };
 
     let typst_check = Command::new("typst").arg("--version").output();
 
@@ -34,12 +52,21 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let required_files = ["data.json", "main.typ", "utils.typ"];
+    let required_files = ["data.json"];
+    let template_required_files = ["main.typ", "utils.typ"];
 
     for file in required_files {
         if !Path::new(file).exists() {
             error!("缺少必要文件: {}", file);
             return Err(format!("缺少必要文件: {}", file).into());
+        }
+        info!("文件存在: {}", file);
+    }
+
+    for file in template_required_files {
+        if !template_dir.join(file).exists() {
+            error!("模板缺少必要文件: {}", file);
+            return Err(format!("模板缺少必要文件: {}", file).into());
         }
         info!("文件存在: {}", file);
     }
@@ -53,12 +80,12 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
     info!("创建 tmp 目录");
 
     info!("复制文件到 tmp 目录");
-    fs::copy("main.typ", tmp_dir.join("main.typ"))?;
-    fs::copy("utils.typ", tmp_dir.join("utils.typ"))?;
+    fs::copy(template_dir.join("main.typ"), tmp_dir.join("main.typ"))?;
+    fs::copy(template_dir.join("utils.typ"), tmp_dir.join("utils.typ"))?;
     fs::copy("data.json", tmp_dir.join("data.json"))?;
 
     if Path::new("fonts").exists() {
-        copy_dir_recursive("fonts", tmp_dir.join("fonts"))?;
+        copy_dir_recursive(template_dir.join("fonts"), tmp_dir.join("fonts"))?;
         info!("复制 fonts 目录");
     }
 
