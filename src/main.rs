@@ -2,7 +2,6 @@ use crate::ren::RenArgs;
 use clap::command;
 use clap::{Parser, Subcommand};
 use clap_i18n_richformatter::clap_i18n;
-
 use log::info;
 
 mod config;
@@ -35,10 +34,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("booting up");
 
-    match cli.command {
-        Commands::Ren(args) => {
-            ren::main(args)?;
-        }
+    let result = match cli.command {
+        Commands::Ren(args) => ren::main(args),
+    };
+
+    if result.is_err() {
+        std::process::exit(1);
     }
+
     Ok(())
 }

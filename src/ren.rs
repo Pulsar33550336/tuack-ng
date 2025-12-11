@@ -1,5 +1,5 @@
 use clap::Args;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use markdown_ppp::parser::*;
 use markdown_ppp::typst_printer::config::Config;
 use markdown_ppp::typst_printer::render_typst;
@@ -17,8 +17,6 @@ pub struct RenArgs {
 }
 
 pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
-    info!("检查Typst编译环境");
-
     let template_dir = context::get_context().template_dirs.iter().find(|dir| {
         let subdir = dir.join(&args.target);
         subdir.exists() && subdir.is_dir()
@@ -35,13 +33,15 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    debug!("检查Typst编译环境");
+
     let typst_check = Command::new("typst").arg("--version").output();
 
     match typst_check {
         Ok(output) => {
             if output.status.success() {
                 let version = String::from_utf8_lossy(&output.stdout);
-                info!("Typst 版本: {}", version.trim());
+                debug!("Typst 版本: {}", version.trim());
             } else {
                 error!("Typst 命令执行失败，请检查是否已安装");
                 return Err("Typst 命令执行失败，请检查是否已安装".into());
