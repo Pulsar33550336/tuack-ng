@@ -80,14 +80,10 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
     info!("创建 tmp 目录");
 
     info!("复制文件到 tmp 目录");
-    fs::copy(template_dir.join("main.typ"), tmp_dir.join("main.typ"))?;
-    fs::copy(template_dir.join("utils.typ"), tmp_dir.join("utils.typ"))?;
     fs::copy("data.json", tmp_dir.join("data.json"))?;
 
-    if template_dir.join("fonts").exists() {
-        copy_dir_recursive(template_dir.join("fonts"), tmp_dir.join("fonts"))?;
-        info!("复制 fonts 目录");
-    }
+    copy_dir_recursive(template_dir, tmp_dir)?;
+    info!("复制模板目录");
 
     let data_content = fs::read_to_string("data.json")?;
     let data: DataJson =
@@ -98,8 +94,8 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
         let markdown_file = format!("{}.md", problem.name);
 
         if !Path::new(&markdown_file).exists() {
-            warn!("未找到问题文件: {}, 跳过", markdown_file);
-            continue;
+            error!("未找到问题文件: {}, 跳过", markdown_file);
+            return Err("未找到问题文件".into());
         }
 
         info!("处理文件: {} -> problem-{}.typ", markdown_file, idx);
@@ -109,8 +105,8 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
         let ast = match parse_markdown(state, &content) {
             Ok(ast) => ast,
             Err(e) => {
-                warn!("解析文件 {} 失败: {:?}, 跳过", markdown_file, e);
-                continue;
+                error!("解析文件 {} 失败: {:?}, 跳过", markdown_file, e);
+                return Err("解析文件失败".into());
             }
         };
 
