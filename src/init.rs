@@ -9,23 +9,31 @@ use std::path::PathBuf;
 
 use crate::context;
 
-fn init_log() -> Result<(), Box<dyn std::error::Error>> {
+fn init_log(verbose: &bool) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(debug_assertions)]
+    const DEBUG: bool = true;
+    #[cfg(not(debug_assertions))]
+    const DEBUG: bool = false;
+
+    let format = if DEBUG || *verbose {
+        "{d(%Y-%m-%d %H:%M:%S)} | {h({l})} | {t} | {m}{n}"
+    } else {
+        "{h({l})} | {m}{n}"
+    };
+
     let stdout = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new(
-            "{d(%Y-%m-%d %H:%M:%S)} | {h({l})} | {t} | {m}{n}",
-        )))
+        .encoder(Box::new(PatternEncoder::new(format)))
         .build();
 
-    #[cfg(debug_assertions)]
-    let config = Config::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(LevelFilter::Trace))
-        .unwrap();
+    let loglevel = if DEBUG || *verbose {
+        LevelFilter::Trace
+    } else {
+        LevelFilter::Warn
+    };
 
-    #[cfg(not(debug_assertions))]
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
+        .build(Root::builder().appender("stdout").build(loglevel))
         .unwrap();
 
     log4rs::init_config(config).unwrap();
@@ -46,8 +54,8 @@ fn init_context() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn init() -> Result<(), Box<dyn std::error::Error>> {
-    init_log()?;
+pub fn init(verbose: &bool) -> Result<(), Box<dyn std::error::Error>> {
+    init_log(verbose)?;
     init_context()?;
     Ok(())
 }

@@ -16,6 +16,9 @@ mod ren;
 struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+    #[arg(short, long, global = true)]
+    /// 详细模式
+    verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -28,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse_i18n_or_exit();
     // let cli = Cli::parse();
 
-    init::init()?;
+    init::init(&cli.verbose)?;
 
     info!("booting up");
 

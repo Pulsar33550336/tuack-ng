@@ -84,7 +84,7 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
     fs::copy(template_dir.join("utils.typ"), tmp_dir.join("utils.typ"))?;
     fs::copy("data.json", tmp_dir.join("data.json"))?;
 
-    if Path::new("fonts").exists() {
+    if template_dir.join("fonts").exists() {
         copy_dir_recursive(template_dir.join("fonts"), tmp_dir.join("fonts"))?;
         info!("复制 fonts 目录");
     }
