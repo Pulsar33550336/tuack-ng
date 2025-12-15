@@ -3,6 +3,8 @@ use log::{debug, error, info, warn};
 use markdown_ppp::parser::*;
 use markdown_ppp::typst_printer::config::Config;
 use markdown_ppp::typst_printer::render_typst;
+use markdown_ppp::ast_transform::Transform;
+use sha2::{Sha256, Digest};
 use std::path::Path;
 use std::process::Command;
 use std::{fs, path::PathBuf};
@@ -25,6 +27,10 @@ pub struct RenArgs {
     /// 要渲染的天的名称（可选，如果不指定则渲染所有天）
     #[arg(short, long)]
     day: Option<String>,
+    
+    /// 保留临时目录用于调试
+    #[arg(long)]
+    keep_tmp: bool,
 }
 
 pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
@@ -100,7 +106,7 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
 
     for day in days_to_render {
         info!("开始渲染天: {}", day.name);
-        render_day(&config, day, &template_dir, &statements_dir)?;
+        render_day(&config, day, &template_dir, &statements_dir, &args)?;
     }
 
     info!("所有天的题面渲染完成！");
@@ -229,6 +235,7 @@ fn render_day(
     day_config: &ContestDayConfig,
     template_dir: &PathBuf,
     output_dir: &PathBuf,
+    args: &RenArgs,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let day_output_dir = output_dir.join(&day_config.name);
     if !day_output_dir.exists() {
@@ -274,13 +281,60 @@ fn render_day(
         // 解析题面
         let content = fs::read_to_string(&statement_path)?;
         let state = MarkdownParserState::new();
-        let ast = match parse_markdown(state, &content) {
+        let mut ast = match parse_markdown(state, &content) {
             Ok(ast) => ast,
             Err(e) => {
                 error!("解析题面文件 {} 失败: {:?}", statement_path.display(), e);
                 return Err("解析题面文件失败".into());
             }
         };
+
+        // 修改图片路径，将相对路径替换为唯一ID路径
+        let img_src_dir = problem_dir.join("img");
+        if img_src_dir.exists() && img_src_dir.is_dir() {
+            ast = ast.transform_image_urls(|url| {
+                // 如果URL是相对路径且指向img目录，则替换为唯一ID路径
+                if url.starts_with("./img/") || url.starts_with("img/") {
+                    // 提取文件名
+                    let filename = Path::new(&url).file_name()
+                        .and_then(|name| name.to_str())
+                        .unwrap_or(&url);
+                    
+                    // 计算文件的SHA256哈希值
+                    let img_path = img_src_dir.join(filename);
+                    if img_path.exists() {
+                        match std::fs::File::open(&img_path) {
+                            Ok(mut file) => {
+                                let mut hasher = Sha256::new();
+                                if std::io::copy(&mut file, &mut hasher).is_ok() {
+                                    let hash = hasher.finalize();
+                                    let hash_hex = format!("{:x}", hash);
+                                    
+                                    // 获取文件扩展名
+                                    let extension = img_path.extension()
+                                        .and_then(|ext| ext.to_str())
+                                        .unwrap_or("");
+                                    
+                                    // 生成唯一ID路径
+                                    if extension.is_empty() {
+                                        format!("img/{}", hash_hex)
+                                    } else {
+                                        format!("img/{}.{}", hash_hex, extension)
+                                    }
+                                } else {
+                                    url // 如果计算哈希失败，保持原URL
+                                }
+                            },
+                            Err(_) => url // 如果打开文件失败，保持原URL
+                        }
+                    } else {
+                        url // 如果文件不存在，保持原URL
+                    }
+                } else {
+                    url
+                }
+            });
+        }
 
         // 生成Typst内容
         let typst_output = render_typst(&ast, Config::default().with_width(1000000));
@@ -291,23 +345,18 @@ fn render_day(
         fs::write(tmp_dir.join(&typst_filename), typst_output)?;
         info!("生成: {}", typst_filename);
 
-        // 复制资源文件
-        // let resource_dirs = ["img", "sample", "pretest", "data"];
-        // for resource_dir in &resource_dirs {
-        //     let src_dir = problem_dir.join(resource_dir);
-        //     if src_dir.exists() && src_dir.is_dir() {
-        //         let dst_dir = tmp_dir.join(resource_dir);
-        //         if dst_dir.exists() {
-        //             fs::remove_dir_all(&dst_dir)?;
-        //         }
-        //         copy_dir_recursive(&src_dir, &dst_dir)?;
-        //         info!(
-        //             "复制资源目录: {} -> {}",
-        //             src_dir.display(),
-        //             dst_dir.display()
-        //         );
-        //     }
-        // }
+        // 处理图片资源
+        let img_src_dir = problem_dir.join("img");
+        if img_src_dir.exists() && img_src_dir.is_dir() {
+            let img_dst_dir = tmp_dir.join("img");
+            if !img_dst_dir.exists() {
+                fs::create_dir_all(&img_dst_dir)?;
+            }
+            
+            // 为每个图片分配唯一ID并复制
+            process_images_with_unique_ids(&img_src_dir, &img_dst_dir, idx)?;
+            info!("处理图片资源: {} -> {}", img_src_dir.display(), img_dst_dir.display());
+        }
     }
 
     // 处理注意事项文件
@@ -351,9 +400,13 @@ fn render_day(
         fs::copy(&pdf_source, &pdf_target)?;
         info!("PDF已保存到: {}", pdf_target.display());
 
-        // 清理临时目录
-        fs::remove_dir_all(&tmp_dir)?;
-        info!("清理临时目录");
+        // 根据keep_tmp参数决定是否清理临时目录
+        if args.keep_tmp {
+            info!("保留临时目录以供调试: {}", tmp_dir.display());
+        } else {
+            fs::remove_dir_all(&tmp_dir)?;
+            info!("清理临时目录");
+        }
     } else {
         let error_output = String::from_utf8_lossy(&compile_result.stderr);
         error!("编译失败:");
@@ -364,6 +417,50 @@ fn render_day(
         return Err("编译过程出错".into());
     }
 
+    Ok(())
+}
+
+// 为图片分配唯一ID并复制的函数
+fn process_images_with_unique_ids(
+    src_dir: &Path,
+    dst_dir: &Path,
+    _problem_idx: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !dst_dir.exists() {
+        fs::create_dir_all(dst_dir)?;
+    }
+
+    for entry in fs::read_dir(src_dir)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        
+        if src_path.is_file() {
+            // 计算文件的SHA256哈希值
+            let mut file = std::fs::File::open(&src_path)?;
+            let mut hasher = Sha256::new();
+            std::io::copy(&mut file, &mut hasher)?;
+            let hash = hasher.finalize();
+            let hash_hex = format!("{:x}", hash);
+            
+            // 获取文件扩展名
+            let extension = src_path.extension()
+                .and_then(|ext| ext.to_str())
+                .unwrap_or("");
+            
+            // 生成唯一ID: sha256.extension
+            let unique_filename = if extension.is_empty() {
+                hash_hex
+            } else {
+                format!("{}.{}", hash_hex, extension)
+            };
+            let dst_path = dst_dir.join(unique_filename);
+            
+            // 复制文件
+            fs::copy(&src_path, &dst_path)?;
+            info!("复制图片: {} -> {}", src_path.display(), dst_path.display());
+        }
+    }
+    
     Ok(())
 }
 
