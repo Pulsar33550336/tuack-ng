@@ -1,11 +1,8 @@
-use clap::builder::Str;
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::fs::File;
-use std::io::BufReader;
+use std::path::Path;
 use std::path::PathBuf;
-use std::{collections::HashMap, path::Path};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Problem {
@@ -37,6 +34,28 @@ pub struct DateInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TemplateManifest {
+    #[serde(default = "default_use_pretest")]
+    pub use_pretest: bool,
+    #[serde(default = "default_noi_style")]
+    pub noi_style: bool,
+    #[serde(default = "default_file_io")]
+    pub file_io: bool,
+}
+
+fn default_use_pretest() -> bool {
+    false
+}
+
+fn default_noi_style() -> bool {
+    true
+}
+
+fn default_file_io() -> bool {
+    true
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DataJson {
     pub title: String,
     pub subtitle: String,
@@ -60,6 +79,15 @@ pub struct ContestConfig {
     pub title: String,
     #[serde(rename = "short title")]
     pub short_title: String,
+    #[serde(rename = "use-pretest")]
+    #[serde(default)]
+    pub use_pretest: Option<bool>,
+    #[serde(rename = "noi-style")]
+    #[serde(default)]
+    pub noi_style: Option<bool>,
+    #[serde(rename = "file-io")]
+    #[serde(default)]
+    pub file_io: Option<bool>,
     #[serde(skip)]
     pub subconfig: Vec<ContestDayConfig>,
     #[serde(skip)]
@@ -79,6 +107,15 @@ pub struct ContestDayConfig {
     pub start_time: [u32; 6],
     #[serde(rename = "end time")]
     pub end_time: [u32; 6],
+    #[serde(rename = "use-pretest")]
+    #[serde(default)]
+    pub use_pretest: Option<bool>,
+    #[serde(rename = "noi-style")]
+    #[serde(default)]
+    pub noi_style: Option<bool>,
+    #[serde(rename = "file-io")]
+    #[serde(default)]
+    pub file_io: Option<bool>,
     #[serde(skip)]
     pub subconfig: Vec<ProblemConfig>,
     #[serde(skip)]
@@ -151,10 +188,10 @@ pub struct SampleItem {
 
 impl SampleItem {
     pub fn finalize(mut self) -> Self {
-        if self.input.is_none() || self.input.as_ref().unwrap().is_empty() {
+        if self.input.as_ref().map_or(true, |s| s.is_empty()) {
             self.input = Some(format!("{}.in", self.id));
         }
-        if self.output.is_none() || self.output.as_ref().unwrap().is_empty() {
+        if self.output.as_ref().map_or(true, |s| s.is_empty()) {
             self.output = Some(format!("{}.ans", self.id));
         }
         self
@@ -178,10 +215,10 @@ pub struct DataItem {
 
 impl DataItem {
     pub fn finalize(mut self) -> Self {
-        if self.input.is_none() || self.input.as_ref().unwrap().is_empty() {
+        if self.input.as_ref().map_or(true, |s| s.is_empty()) {
             self.input = Some(format!("{}.in", self.id));
         }
-        if self.output.is_none() || self.output.as_ref().unwrap().is_empty() {
+        if self.output.as_ref().map_or(true, |s| s.is_empty()) {
             self.output = Some(format!("{}.ans", self.id));
         }
         self
@@ -259,7 +296,10 @@ pub fn load_config(path: &Path) -> Result<ContestConfig, Box<dyn std::error::Err
 
     config.subconfig = Vec::new();
 
-    let parent_dir = config_path.parent().unwrap();
+    let parent_dir = config_path
+        .parent()
+        .map(|p| p.to_path_buf())
+        .ok_or("无法获取配置文件父目录")?;
 
     for dayconfig_name in &config.subdir {
         let dayconfig_path = parent_dir.join(dayconfig_name).join("conf.json");
@@ -288,7 +328,10 @@ pub fn load_config(path: &Path) -> Result<ContestConfig, Box<dyn std::error::Err
 
         dayconfig.subconfig = Vec::new();
 
-        let day_parent_dir = dayconfig_path.parent().unwrap();
+        let day_parent_dir = dayconfig_path
+            .parent()
+            .map(|p| p.to_path_buf())
+            .ok_or("无法获取配置文件父目录")?;
 
         for problemconfig_name in &dayconfig.subdir {
             let problemconfig_path = day_parent_dir.join(problemconfig_name).join("conf.json");
@@ -309,7 +352,10 @@ pub fn load_config(path: &Path) -> Result<ContestConfig, Box<dyn std::error::Err
 
             let mut problemconfig: ProblemConfig = serde_json::from_str(&problem_content)?;
 
-            problemconfig.path = problemconfig_path.clone().parent().unwrap().to_path_buf();
+            problemconfig.path = problemconfig_path
+                .parent()
+                .map(|p| p.to_path_buf())
+                .ok_or("无法获取配置文件父目录")?;
 
             problemconfig = problemconfig.finalize();
 

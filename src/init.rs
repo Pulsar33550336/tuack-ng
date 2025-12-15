@@ -74,19 +74,23 @@ fn init_log(verbose: &bool) -> Result<(), Box<dyn std::error::Error>> {
 
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(loglevel))
-        .unwrap();
+        .build(Root::builder().appender("stdout").build(loglevel))?;
 
-    log4rs::init_config(config).unwrap();
+    log4rs::init_config(config)?;
 
     Ok(())
 }
 
 fn init_context() -> Result<(), Box<dyn std::error::Error>> {
+    let home_dir = env::var("HOME").map_err(|e| {
+        log::error!("无法获取 HOME 环境变量: {}", e);
+        e
+    })?;
+    
     let template_dirs = vec![
         #[cfg(debug_assertions)]
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates"),
-        PathBuf::from(env::var("HOME").unwrap()).join(".local/share/tuack-ng/templates"),
+        PathBuf::from(home_dir).join(".local/share/tuack-ng/templates"),
         PathBuf::from("/usr/share/tuack-ng/templates"),
     ];
     context::setup_context(context::Context {

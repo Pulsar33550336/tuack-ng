@@ -9,8 +9,8 @@ use std::{fs, path::PathBuf};
 
 use crate::{
     config::{
-        ContestConfig, ContestDayConfig, DataJson, DateInfo, Problem, ProblemConfig,
-        SupportLanguage, load_config,
+        ContestConfig, ContestDayConfig, DataJson, DateInfo, Problem, SupportLanguage,
+        TemplateManifest, load_config,
     },
     context,
 };
@@ -43,7 +43,7 @@ pub fn main(args: RenArgs) -> Result<(), Box<dyn std::error::Error>> {
         }
         None => {
             error!("没有找到模板 {}", args.target);
-            return Err("没有找到模板".into());
+            return Err(format!("致命错误: 没有找到模板 {}", args.target).into());
         }
     };
 
@@ -172,14 +172,52 @@ fn generate_data_json(
         end: day_config.end_time,
     };
 
+    // 读取模板目录中的清单文件以获取默认值
+    let manifest_path = context::get_context().template_dirs.iter().find_map(|dir| {
+        let manifest_file = dir.join("noi").join("manifest.json");
+        if manifest_file.exists() {
+            Some(manifest_file)
+        } else {
+            None
+        }
+    });
+
+    let manifest = if let Some(path) = manifest_path {
+        let manifest_content = fs::read_to_string(&path)?;
+        serde_json::from_str::<TemplateManifest>(&manifest_content)?
+    } else {
+        // // 如果找不到清单文件，使用硬编码的默认值
+        // TemplateManifest {
+        //     use_pretest: false,
+        //     noi_style: true,
+        //     file_io: true,
+        // }
+        error!("找不到清单文件");
+        return Err("致命错误: 找不到清单文件".into());
+    };
+
+    // 从ContestConfig和ContestDayConfig中获取覆盖值
+    let use_pretest = day_config
+        .use_pretest
+        .or(contest_config.use_pretest)
+        .unwrap_or(manifest.use_pretest);
+    let noi_style = day_config
+        .noi_style
+        .or(contest_config.noi_style)
+        .unwrap_or(manifest.noi_style);
+    let file_io = day_config
+        .file_io
+        .or(contest_config.file_io)
+        .unwrap_or(manifest.file_io);
+
     Ok(DataJson {
         title: contest_config.title.clone(),
         subtitle: contest_config.short_title.clone(),
         dayname: day_config.title.clone(),
         date,
-        use_pretest: false, // 默认值，你可能需要从配置文件读取
-        noi_style: true,    // 默认值，你可能需要从配置文件读取
-        file_io: true,      // 默认值，你可能需要从配置文件读取
+        use_pretest,
+        noi_style,
+        file_io,
         support_languages,
         problems,
         images: Vec::new(),
@@ -346,7 +384,6 @@ fn copy_dir_recursive<P: AsRef<Path>, Q: AsRef<Path>>(
         let ty = entry.file_type()?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
-
         if ty.is_dir() {
             copy_dir_recursive(&src_path, &dst_path)?;
         } else {
