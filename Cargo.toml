@@ -2,6 +2,10 @@
 name = "tuack-ng"
 version = "0.0.2"
 edition = "2024"
+authors = ["Pulsar <Pulsar33550336@163.com>"]
+description = "重构后的 tuack 项目，旨在提供更加高效和轻量的出题体验。"
+repository = "https://github.com/tuack-ng/tuack-ng"
+license = "AGPL-3.0-or-later"
 
 [dependencies]
 bytes = "1.11.0"
@@ -22,3 +26,15 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+
+[package.metadata.deb]
+assets = [
+    "$auto",
+    ["templates/*/**", "usr/share/tuack-ng/templates/", "755"],
+]
+
+[package.metadata.aur]
+files = [
+    ["templates/", "/usr/share/tuack-ng/templates/", "755"],
+]
+depends = ["gcc-libs", "glibc"]

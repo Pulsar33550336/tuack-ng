@@ -1,3 +1,4 @@
+use crate::parse::ParseArgs;
 use crate::ren::RenArgs;
 use clap::command;
 use clap::{Parser, Subcommand};
@@ -7,6 +8,7 @@ use log::info;
 mod config;
 mod context;
 mod init;
+mod parse;
 mod ren;
 
 #[derive(Debug, Parser)]
@@ -24,6 +26,7 @@ struct Cli {
 enum Commands {
     /// 渲染题面
     Ren(RenArgs),
+    Parse(ParseArgs),
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,11 +39,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = match cli.command {
         Commands::Ren(args) => ren::main(args),
-    };
-
-    if result.is_err() {
-        std::process::exit(1);
+        Commands::Parse(args) => parse::main(args),
     }
+    .unwrap();
+
+    // if result.is_err() {
+    //     std::process::exit(1);
+    // }
 
     Ok(())
 }
