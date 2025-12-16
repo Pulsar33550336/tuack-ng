@@ -3,8 +3,11 @@ name: Rust Check
 on:
   push:
     branches: [ "master" ]
+    tags:
+      - "*.*.*"
+
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master" ]  
 
 env:
   CARGO_TERM_COLOR: always
@@ -32,6 +35,7 @@ jobs:
     - name: Upload deb
       uses: actions/upload-artifact@v4
       with:
+
         name: output-deb
         path: target/debian/*.deb
     - name: Pack aur
@@ -54,10 +58,13 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
   
     steps:
-    - name: Download cipx artifact
+    - name: Download artifact
       uses: actions/download-artifact@v4
       with:
         path: .
+    
+    - name: Display structure of downloaded files
+      run: ls -R .
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -65,8 +72,8 @@ jobs:
         tag_name: ${{ github.event.inputs.tag || github.ref_name }}
         draft: true
         files: |
-          ./*.zip
-          ./*.deb
-        body_path: ./${{ github.event.inputs.tag || github.ref_name }}.md
+          ./output-aur/*.tar.gz
+          ./output-deb/*.deb
+        body_path: ./release-docs/${{ github.event.inputs.tag || github.ref_name }}.md
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
