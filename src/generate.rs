@@ -3,6 +3,16 @@ use clap::ValueEnum;
 use std::path::Path;
 use std::{fs, path::PathBuf};
 
+use crate::config::ContestConfig;
+use crate::config::ContestDayConfig;
+use crate::config::ProblemConfig;
+use crate::config::load_contest_config;
+use crate::config::load_day_config;
+use crate::config::load_problem_config;
+use crate::config::save_contest_config;
+use crate::config::save_day_config;
+use crate::config::save_problem_config;
+
 #[derive(Debug, Clone, ValueEnum)]
 enum Targets {
     Contest,
@@ -32,6 +42,17 @@ pub fn main(args: GenArgs) -> Result<(), Box<dyn std::error::Error>> {
 
             for contest_name in &args.name {
                 copy_dir_recursive(&scaffold_path, &current_dir.join(contest_name))?;
+
+                let mut contest_json: ContestConfig =
+                    load_contest_config(&current_dir.join(contest_name).join("conf.json"))?;
+
+                contest_json.name = contest_name.to_string();
+
+                let updated_content = save_contest_config(&contest_json)?;
+                std::fs::write(
+                    &current_dir.join(contest_name).join("conf.json"),
+                    updated_content,
+                )?;
             }
         }
         Targets::Day => {
@@ -61,6 +82,17 @@ pub fn main(args: GenArgs) -> Result<(), Box<dyn std::error::Error>> {
 
             for day_name in &args.name {
                 copy_dir_recursive(&scaffold_path, &current_dir.join(day_name))?;
+
+                let mut day_json: ContestDayConfig =
+                    load_day_config(&current_dir.join(day_name).join("conf.json"))?;
+
+                day_json.name = day_name.to_string();
+
+                let updated_content = save_day_config(&day_json)?;
+                std::fs::write(
+                    &current_dir.join(day_name).join("conf.json"),
+                    updated_content,
+                )?;
             }
 
             // 更新contest配置文件的subdir字段
@@ -104,6 +136,17 @@ pub fn main(args: GenArgs) -> Result<(), Box<dyn std::error::Error>> {
 
             for problem_name in &args.name {
                 copy_dir_recursive(&scaffold_path, &current_dir.join(problem_name))?;
+
+                let mut problem_json: ProblemConfig =
+                    load_problem_config(&current_dir.join(problem_name).join("conf.json"))?;
+
+                problem_json.name = problem_name.to_string();
+
+                let updated_content = save_problem_config(&problem_json)?;
+                std::fs::write(
+                    &current_dir.join(problem_name).join("conf.json"),
+                    updated_content,
+                )?;
             }
 
             // 更新day配置文件的subdir字段

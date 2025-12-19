@@ -1,6 +1,6 @@
+use super::problem::ProblemConfig;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use super::problem::ProblemConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
