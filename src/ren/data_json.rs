@@ -22,7 +22,7 @@ pub fn generate_data_json(
             dir: problem_config.name.clone(), // 假设目录名就是问题名
             exec: problem_config.name.clone(), // 默认值，你可能需要从配置文件读取
             input: problem_config.name.clone() + ".in",
-            output: problem_config.name.clone() + ".out",
+            output: problem_config.name.clone() + ".ans", // 改为使用 .ans 后缀
             problem_type: match problem_config.problem_type.as_str() {
                 "program" => "传统型",
                 "output" => "提交答案型",

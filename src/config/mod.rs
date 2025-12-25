@@ -182,6 +182,7 @@ pub fn load_problem_config(
     Ok(problemconfig)
 }
 
+#[allow(unused)]
 /// 将整个配置序列化并保存到文件系统中
 pub fn save_config(
     config: &ContestConfig,

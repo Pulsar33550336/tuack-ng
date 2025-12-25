@@ -47,14 +47,13 @@ pub struct SampleItem {
 }
 
 impl SampleItem {
-    pub fn finalize(mut self) -> Self {
-        if self.input.as_ref().map_or(true, |s| s.is_empty()) {
-            self.input = Some(format!("{}.in", self.id));
+    pub fn finalize(self) -> Self {
+        // 总是使用默认的 id+.in/.ans 格式，忽略配置文件中的设置
+        SampleItem {
+            id: self.id,
+            input: Some(format!("{}.in", self.id)),
+            output: Some(format!("{}.ans", self.id)),
         }
-        if self.output.as_ref().map_or(true, |s| s.is_empty()) {
-            self.output = Some(format!("{}.ans", self.id));
-        }
-        self
     }
 }
 
@@ -69,13 +68,13 @@ pub struct DataItem {
 }
 
 impl DataItem {
-    pub fn finalize(mut self) -> Self {
-        if self.input.as_ref().map_or(true, |s| s.is_empty()) {
-            self.input = Some(format!("{}.in", self.id));
+    pub fn finalize(self) -> Self {
+        // 总是使用默认的 id+.in/.ans 格式，忽略配置文件中的设置
+        DataItem {
+            id: self.id,
+            score: self.score,
+            input: Some(format!("{}.in", self.id)),
+            output: Some(format!("{}.ans", self.id)),
         }
-        if self.output.as_ref().map_or(true, |s| s.is_empty()) {
-            self.output = Some(format!("{}.ans", self.id));
-        }
-        self
     }
 }

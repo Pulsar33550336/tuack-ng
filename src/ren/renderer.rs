@@ -1,3 +1,4 @@
+use crate::config::{ContestConfig, ContestDayConfig};
 use log::{error, info, warn};
 use markdown_ppp::ast_transform::Transform;
 use markdown_ppp::parser::*;
@@ -8,9 +9,8 @@ use std::path::Path;
 use std::process::Command;
 use std::{fs, path::PathBuf};
 
-use crate::config::{ContestConfig, ContestDayConfig};
-
 use super::data_json::generate_data_json;
+use super::r#macro::expand_macro;
 use super::utils::{copy_dir_recursive, process_images_with_unique_ids};
 
 pub fn render_day(
@@ -124,6 +124,8 @@ pub fn render_day(
                 }
             });
         }
+
+        ast = expand_macro(ast, problem_dir, problem).unwrap();
 
         // 生成Typst内容
         let typst_output = render_typst(&ast, Config::default().with_width(1000000));
