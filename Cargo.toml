@@ -36,6 +36,7 @@ rayon = "1.11.0"
 regex = "1.12.2"
 serde = "1.0.228"
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
+serde_yaml = "0.9"
 sha2 = "0.10.9"
 shellwords = "1.1.0"
 strfmt = "0.2.5"

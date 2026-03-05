@@ -3,6 +3,9 @@ use crate::dmk::DmkArgs;
 use crate::dump::DumpArgs;
 use crate::generate::GenArgs;
 use crate::prelude::*;
+use crate::check::CheckArgs;
+use crate::fmt::FmtArgs;
+use crate::import::ImportArgs;
 use crate::ren::RenArgs;
 use crate::test::TestArgs;
 use clap::ArgAction;
@@ -13,7 +16,10 @@ mod conf;
 mod config;
 mod context;
 mod dmk;
+mod check;
 mod dump;
+mod fmt;
+mod import;
 mod generate;
 mod init;
 mod prelude;
@@ -47,6 +53,12 @@ enum Commands {
     Dmk(DmkArgs),
     /// 导出到评测系统
     Dump(DumpArgs),
+    /// 格式化题面
+    Fmt(FmtArgs),
+    /// 检查配置文件和题面
+    Check(CheckArgs),
+    /// 从原 Tuack 导入工程
+    Import(ImportArgs),
 }
 
 fn tuack_ng(cli: Cli) -> Result<()> {
@@ -66,6 +78,9 @@ fn tuack_ng(cli: Cli) -> Result<()> {
         Commands::Conf(args) => conf::main(args),
         Commands::Dmk(args) => dmk::main(args),
         Commands::Dump(args) => dump::main(args),
+        Commands::Fmt(args) => fmt::main(args),
+        Commands::Check(args) => check::main(args),
+        Commands::Import(args) => import::main(args),
     }
 }
 

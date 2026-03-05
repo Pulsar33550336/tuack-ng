@@ -4,6 +4,7 @@ use crate::ren::Compiler;
 use crate::ren::RenderQueue;
 use crate::ren::copy_dir_recursive;
 use crate::ren::renderers::base::Checker;
+use crate::ren::renderers::quirks::get_quirks;
 use markdown_ppp::printer::config::Config;
 use markdown_ppp::printer::render_markdown;
 
@@ -43,9 +44,26 @@ impl Compiler for MarkdownCompiler {
         if !output_dir.exists() {
             fs::create_dir_all(output_dir)?;
         }
+
+        let target_name = self.tmp_dir.parent().and_then(|p| p.file_name()).and_then(|n| n.to_str()).unwrap_or("");
+        let quirks = get_quirks(target_name);
+
         for item in &self.renderqueue {
             if let RenderQueue::Problem(ast, problem_config) = item {
-                let output = render_markdown(ast, Config::default().with_width(10000000));
+                let mut ast = ast.clone();
+                for quirk in &quirks {
+                    ast = quirk.apply(ast);
+                }
+
+                let mut output = render_markdown(&ast, Config::default().with_width(10000000));
+
+                // Post-processing string-based quirks
+                let target_lower = target_name.to_lowercase();
+                if target_lower.contains("loj") || target_lower.contains("ipuoj") {
+                    // LOJ quirks: replace "$<" with "$ <"
+                    output = output.replace("$<", "$ <");
+                }
+
                 let output_filename = format!("{}.md", problem_config.name);
 
                 fs::write(output_dir.join(&output_filename), output)?;
