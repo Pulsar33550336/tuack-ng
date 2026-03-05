@@ -1,0 +1,28 @@
+{
+  "version": 3,
+  "folder": "day",
+  "name": "1",
+  "subdir": [
+    "CF13C"
+  ],
+  "title": "场次标题",
+  "compile": {
+    "cpp": "-O2 -std=c++14 -static"
+  },
+  "start time": [
+    1970,
+    1,
+    1,
+    0,
+    0,
+    0
+  ],
+  "end time": [
+    1970,
+    1,
+    1,
+    0,
+    0,
+    0
+  ]
+}

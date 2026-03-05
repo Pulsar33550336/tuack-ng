@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+.DS_Store
+*/.DS_Store
+conf.json
+build
+tuack.egg-info
+dist
+build
+.eggs
+.*.sw[a-p]

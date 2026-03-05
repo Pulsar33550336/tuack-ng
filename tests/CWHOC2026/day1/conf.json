@@ -1,0 +1,31 @@
+{
+    "version": 3,
+    "folder": "day",
+    "name": "day1",
+    "subdir": [
+        "april",
+        "Kong",
+        "road",
+        "cloth"
+    ],
+    "title": "",
+    "compile": {
+        "cpp": "-O2 -std=c++14 -static -m32"
+    },
+    "start time": [
+        2026,
+        11,
+        1,
+        1,
+        9,
+        0
+    ],
+    "end time": [
+        2026,
+        1,
+        5,
+        9,
+        10,
+        0
+    ]
+}

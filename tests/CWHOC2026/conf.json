@@ -1,0 +1,10 @@
+{
+    "version": 3,
+    "folder": "contest",
+    "name": "CWHOC2026",
+    "subdir": [
+        "day1"
+    ],
+    "title": "CCF 全校青少年语文奥林匹克联赛",
+    "short title": "CCF CWHOC 2025"
+}

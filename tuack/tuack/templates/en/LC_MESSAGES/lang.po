@@ -1,0 +1,215 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2017-04-30 20:08+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: utf-8\n"
+"Generated-By: pygettext.py 1.5\n"
+
+msgid "Read from the standard input."
+msgstr "Read from standard input."
+
+msgid "Sample"
+msgstr "Sample "
+
+msgid "sample"
+msgstr "Sample "
+
+msgid "Sample Input %s"
+msgstr "Sample Input %s"
+
+msgid "sample input"
+msgstr "Sample Input %s"
+
+msgid "Input"
+msgstr "Input"
+
+msgid "input"
+msgstr "Input"
+
+msgid "Sample Output %s"
+msgstr "Sample Output %s"
+
+msgid "sample output"
+msgstr "Sample Output %s"
+
+#样例%s输出"
+
+msgid "Output"
+msgstr "Output"
+
+msgid "output"
+msgstr "Output"
+
+#输出"
+
+msgid "Explanation"
+msgstr "Explanation"
+
+msgid "explanation"
+msgstr "Explanation"
+
+#解释"
+
+msgid "Sample Explanation %s"
+msgstr "Sample Explanation %s"
+
+msgid "sample explanation"
+msgstr "Sample Explanation %s"
+
+#样例%s解释"
+
+msgid "Input Format"
+msgstr "Input Format"
+
+msgid "input format"
+msgstr "Input Format"
+
+#输入格式"
+
+msgid "Output Format"
+msgstr "Output Format"
+
+msgid "output format"
+msgstr "Output Format"
+
+#输出格式"
+
+msgid "Description"
+msgstr "Problem Statement"
+
+msgid "description"
+msgstr "Description"
+
+msgid "Background"
+msgstr "Background"
+
+msgid "background"
+msgstr "Background"
+
+#题目背景"
+
+msgid "Hint"
+msgstr "Hint"
+
+msgid "hint"
+msgstr "Hint"
+
+#提示"
+
+msgid "Subtasks"
+msgstr "Subtasks"
+
+msgid "subtasks"
+msgstr "Subtasks"
+
+#子任务"
+
+msgid "Scoring"
+msgstr "Scoring"
+
+msgid "scoring"
+msgstr "Scoring"
+
+msgid "Time limit:"
+msgstr "Time limit:"
+
+msgid "Time limit"
+msgstr "Time limit"
+
+msgid "Memory limit:"
+msgstr "Memory limit:"
+
+msgid "Memory limit"
+msgstr "Memory limit"
+
+msgid "second(s)"
+msgstr "second(s)"
+
+msgid "Read from the file *%s.in*."
+msgstr "Read from the file *%s.in*."
+
+#msgstr "从文件 *%s.in* 中读入数据。"
+
+msgid "Write to the standard output."
+msgstr "Write to the standard output."
+
+#msgstr "输出到标准输出。"
+
+msgid "Write to the file *%s.out*."
+msgstr "Write to the file *%s.out*."
+
+#msgstr "输出到文件 *%s.out* 中。"
+
+msgid "download files"
+msgstr "download files"
+
+#msgstr "下载目录"
+
+msgid "user's home path"
+msgstr "user's home path"
+
+#msgstr "选手目录"
+
+msgid "problem path"
+msgstr "problem path"
+
+#msgstr "题目目录"
+
+msgid "See *%(in)s* and *%(ans)s* in the %(path)s."
+msgstr "See *%(in)s* and *%(ans)s* in the %(path)s."
+
+#msgstr "见%(path)s下的 *%(in)s* 与 *%(ans)s*。"
+
+msgid "Related files:"
+msgstr "Related files:"
+
+#msgstr "相关文件："
+
+msgid "This is an output-only problem."
+msgstr "This is an output-only problem."
+
+#msgstr "这是一道提交答案题。"
+
+msgid "This is an interactive problem."
+msgstr "This is an interactive problem."
+
+#msgstr "这是一道交互题。"
+
+msgid "Time:"
+msgstr " "
+
+msgid "year"
+msgstr "-"
+
+msgid "month"
+msgstr "-"
+
+msgid "day"
+msgstr " "
+
+msgid "Content"
+msgstr "Content"
+
+msgid "This is an output-only problem. There are %d input files named *%s1.in* ~ *%s%d.in*."
+msgstr "This is an output-only problem. There are %d input files named *%s1.in* ~ *%s%d.in*."
+
+msgid "For each input file, you should accomplish an output file named *%s1.out* ~ *%s%d.out*."
+msgstr "For each input file, you should accomplish an output file named *%s1.out* ~ *%s%d.out*."
+
+msgid "Case related"
+msgstr "Case related"
+
+msgid "yes"
+msgstr "yes"
+
+msgid "no"
+msgstr "no"

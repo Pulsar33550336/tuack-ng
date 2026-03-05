@@ -1,0 +1,139 @@
+{
+    "version": 3,
+    "folder": "problem",
+    "type": "program",
+    "name": "april",
+    "title": "四月天",
+    "time limit": 1.0,
+    "memory limit": "256 MiB",
+    "partial score": false,
+    "samples": [
+        {
+            "id": 1,
+            "input": "1.in",
+            "output": "1.ans"
+        }
+    ],
+    "data": [
+        {
+            "id": 1,
+            "score": 5,
+            "input": "1.in",
+            "output": "1.ans"
+        },
+        {
+            "id": 2,
+            "score": 5,
+            "input": "2.in",
+            "output": "2.ans"
+        },
+        {
+            "id": 3,
+            "score": 5,
+            "input": "3.in",
+            "output": "3.ans"
+        },
+        {
+            "id": 4,
+            "score": 5,
+            "input": "4.in",
+            "output": "4.ans"
+        },
+        {
+            "id": 5,
+            "score": 5,
+            "input": "5.in",
+            "output": "5.ans"
+        },
+        {
+            "id": 6,
+            "score": 5,
+            "input": "6.in",
+            "output": "6.ans"
+        },
+        {
+            "id": 7,
+            "score": 5,
+            "input": "7.in",
+            "output": "7.ans"
+        },
+        {
+            "id": 8,
+            "score": 5,
+            "input": "8.in",
+            "output": "8.ans"
+        },
+        {
+            "id": 9,
+            "score": 5,
+            "input": "9.in",
+            "output": "9.ans"
+        },
+        {
+            "id": 10,
+            "score": 5,
+            "input": "10.in",
+            "output": "10.ans"
+        },
+        {
+            "id": 11,
+            "score": 5,
+            "input": "11.in",
+            "output": "11.ans"
+        },
+        {
+            "id": 12,
+            "score": 5,
+            "input": "12.in",
+            "output": "12.ans"
+        },
+        {
+            "id": 13,
+            "score": 5,
+            "input": "13.in",
+            "output": "13.ans"
+        },
+        {
+            "id": 14,
+            "score": 5,
+            "input": "14.in",
+            "output": "14.ans"
+        },
+        {
+            "id": 15,
+            "score": 5,
+            "input": "15.in",
+            "output": "15.ans"
+        },
+        {
+            "id": 16,
+            "score": 5,
+            "input": "16.in",
+            "output": "16.ans"
+        },
+        {
+            "id": 17,
+            "score": 5,
+            "input": "17.in",
+            "output": "17.ans"
+        },
+        {
+            "id": 18,
+            "score": 5,
+            "input": "18.in",
+            "output": "18.ans"
+        },
+        {
+            "id": 19,
+            "score": 5,
+            "input": "19.in",
+            "output": "19.ans"
+        },
+        {
+            "id": 20,
+            "score": 5,
+            "input": "20.in",
+            "output": "20.ans"
+        }
+    ]
+}

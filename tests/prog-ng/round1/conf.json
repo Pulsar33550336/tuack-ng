@@ -1,0 +1,29 @@
+{
+  "version": 3,
+  "folder": "day",
+  "name": "round1",
+  "subdir": [
+    "fight",
+    "roll"
+  ],
+  "title": "Round1 Div.4",
+  "compile": {
+    "cpp": "-O2 -std=c++14 -static"
+  },
+  "start time": [
+    1145,
+    1,
+    4,
+    0,
+    0,
+    0
+  ],
+  "end time": [
+    1919,
+    8,
+    10,
+    0,
+    0,
+    0
+  ]
+}

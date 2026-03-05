@@ -1,0 +1,70 @@
+{% extends 'template_base.tex.jinja' %}
+
+{% block cover %}
+
+\thispagestyle{Cover}
+\begin{center}
+	\ifdefined\thetitle
+		\ifdefined\longtitle\centerline\fi{\yihao \bf \thetitle} \par
+	\fi
+	\ifdefined\subtitle
+		{\yihao \heiti \subtitle \par}
+	\fi
+	\ifdefined\subsubtitle
+		{\yihao \heiti \subsubtitle \par}
+	\fi
+	\ifdefined\engtitle
+		{\xiaoyi \heiti \engtitle \par}
+	\fi
+	\vskip 1em 
+	\ifdefined\theday
+		{\chuhao \kaishu \theday \par} \vskip 1em 
+	\fi
+	\ifdefined\thetime
+		{\sanhao \heiti \thetime \par}
+	\fi
+\end{center}
+
+\setcounter{tocdepth}{1}
+
+\tableofcontents
+
+{% endblock %}
+
+{% block statements %}
+
+{% for i in range(problems.__len__()) %}
+	\clearpage
+	\begin{center}
+		\section{ 
+			{%- if 'number' in probs[i] -%}
+				{{ tools.chr(tools.ord('A') + probs[i].number) }}
+			{%- else -%}
+				{{ tools.chr(tools.ord('A') + i) }}
+			{%- endif -%} . ~
+			{{- probs[i].tr('title') -}} 
+			~~/~~ 
+			{% if probs[i].lang() == 'en' %}
+			{{- probs[i]['name'] -}}
+			{% else %}
+			{{- probs[i]['name'].capitalize() -}}
+			{% endif %}
+		}
+	\end{center}
+	
+{% if probs[i].lang() == 'zh-cn' %}
+	\renewcommand{\sqbr}[1]{【#1】}
+	\titleformat{\subsection}{\heiti\banxiaosi}{}{1em}{\sqbr}
+{% else %}
+	\renewcommand{\sqbr}[1]{ \textbf{ #1 } }
+	\titleformat{\subsection}{\heiti\sanhao}{}{0em}{\sqbr}
+{% endif %}
+
+	
+	{{ problems[i] }}
+
+{% endfor %}
+
+{% endblock %}
+
+\end{document}

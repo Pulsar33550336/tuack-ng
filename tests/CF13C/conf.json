@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "folder": "contest",
+  "name": "CF13C",
+  "subdir": [
+    "1"
+  ],
+  "title": "试题标题",
+  "short title": "试题副标题"
+}

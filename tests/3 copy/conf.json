@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "folder": "contest",
+  "name": "noip2025",
+  "subdir": [
+    "day1"
+  ],
+  "title": "CCF 全国青少年信息学奥林匹克联赛",
+  "short title": "CCF NOIP 2025"
+}

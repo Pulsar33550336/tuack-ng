@@ -1,0 +1,29 @@
+{
+  "version": 3,
+  "folder": "day",
+  "name": "day1",
+  "subdir": [
+    "candy"
+  ],
+  "title": "",
+  "compile": {
+    "cpp": "-O2 -std=c++14 -static",
+    "java": ""
+  },
+  "start time": [
+    2025,
+    11,
+    29,
+    8,
+    30,
+    0
+  ],
+  "end time": [
+    2025,
+    11,
+    29,
+    13,
+    0,
+    0
+  ]
+}

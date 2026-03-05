@@ -1,0 +1,93 @@
+\documentclass{tuack}
+
+{% if not base.lang or base.lang == 'zh-cn' %}
+	\renewcommand{\figurename}{图}
+{% endif %}
+
+\def\thecontent { {{_('Content')}} }
+
+{% if water_mark %}
+
+\usepackage{draftwatermark}
+
+\SetWatermarkAngle{0}
+
+\SetWatermarkText{\includegraphics{water_mark.png} }
+
+{% endif %}
+
+{% block base %}{% endblock %}
+
+\begin{document}
+
+{% if contest and 'title' in contest %}
+	\title{ {{- contest.tr('title') -}} }
+	\def\mytitle{ {{- contest.tr('title') -}} }
+	{% if contest.tr('title').__len__() > 10 %}
+		\def\longtitle{ {{- contest.tr('title') -}} }
+	{% endif %}
+{% else %}
+	\title{ 预览输出 }
+	\def\mytitle{ 预览输出 }
+{% endif %}
+
+{% if contest and 'subtitle' in contest %}
+	\def\subtitle{ {{- contest.tr('subtitle') -}} }
+{% endif %}
+
+{% if contest and 'subsubtitle' in contest %}
+	\def\subsubtitle{ {{- contest.tr('subsubtitle') -}} }
+{% endif %}
+
+{% if contest and 'short title' in contest %}
+	\def\engtitle{ {{- contest.tr('short title') -}} }
+{% endif %}
+
+{% if day and 'title' in day %}
+	\def\theday{ {{- day.tr('title') -}} }
+{% endif %}
+
+{% if day and 'start time' in day and 'end time' in day %}
+	\def\thetime{
+		{{ _('Time:') }}
+		{{ tools.time_range(day['start time'], day['end time'], _('year'), _('month'), _('day')).replace('~', '$\\sim$').replace(' ', ' ') }}
+	}
+{% endif %}
+
+{% if contest and 'place' in contest %}
+	\def\place{ {{contest.place['en']}} }
+{% endif %}
+
+{% block header %}
+
+\rhead{\parbox{\textwidth}{\raggedleft\textnormal{
+	\footnotesize
+	\ifdefined \theday
+		\theday
+	\fi
+	\nouppercase \rightmark
+}}}
+\lhead{\parbox{\textwidth}{\textnormal{\footnotesize\mytitle
+	\ifdefined\subtitle
+		\subtitle
+	\fi
+}}}
+\chead{}
+\lfoot{}
+\cfoot{\parbox{\textwidth}{
+	\centering \footnotesize {
+{% if not base.lang or base.lang == 'zh-cn' -%}
+	第 \thepage{} 页 ~~~~ 共 \pageref{LastPage} 页
+{%- elif base.lang == 'en' -%}
+	page \thepage{} / \pageref{LastPage}
+{%- endif -%}
+} } }
+\rfoot{}
+
+{% endblock %}
+
+{% block cover %}{% endblock %}
+
+{% block statements %}{% endblock %}
+
+\end{document}

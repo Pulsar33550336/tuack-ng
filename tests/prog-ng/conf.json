@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "folder": "contest",
+  "name": "prog-ng",
+  "subdir": [
+    "round1"
+  ],
+  "title": "CSP-J 2025 模拟赛",
+  "short title": "LZYOI"
+}

@@ -1,0 +1,183 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2017-04-30 20:08+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: utf-8\n"
+"Generated-By: pygettext.py 1.5\n"
+
+msgid "Read from the standard input."
+msgstr "从标准输入读入数据。"
+
+msgid "Sample"
+msgstr "样例"
+
+msgid "sample"
+msgstr "样例"
+
+msgid "Sample Input %s"
+msgstr "样例%s输入"
+
+msgid "sample input"
+msgstr "样例%s输入"
+
+msgid "Input"
+msgstr "输入"
+
+msgid "input"
+msgstr "输入"
+
+msgid "Sample Output %s"
+msgstr "样例%s输出"
+
+msgid "sample output"
+msgstr "样例%s输出"
+
+msgid "Output"
+msgstr "输出"
+
+msgid "output"
+msgstr "输出"
+
+msgid "Explanation"
+msgstr "解释"
+
+msgid "explanation"
+msgstr "解释"
+
+msgid "Sample Explanation %s"
+msgstr "样例%s解释"
+
+msgid "sample explanation"
+msgstr "样例%s解释"
+
+msgid "Input Format"
+msgstr "输入格式"
+
+msgid "input format"
+msgstr "输入格式"
+
+msgid "Output Format"
+msgstr "输出格式"
+
+msgid "output format"
+msgstr "输出格式"
+
+msgid "Description"
+msgstr "题目描述"
+
+msgid "description"
+msgstr "题目描述"
+
+msgid "Background"
+msgstr "题目背景"
+
+msgid "background"
+msgstr "题目背景"
+
+msgid "Hint"
+msgstr "提示"
+
+msgid "hint"
+msgstr "提示"
+
+msgid "Subtasks"
+msgstr "子任务"
+
+msgid "subtasks"
+msgstr "子任务"
+
+msgid "Scoring"
+msgstr "评分方式"
+
+msgid "scoring"
+msgstr "评分方式"
+
+msgid "Time limit:"
+msgstr "时间限制："
+
+msgid "Time limit"
+msgstr "时间限制"
+
+msgid "Memory limit:"
+msgstr "空间限制："
+
+msgid "Memory limit"
+msgstr "空间限制"
+
+msgid "second(s)"
+msgstr "秒"
+
+msgid "Read from the file *%s.in*."
+msgstr "从文件 *%s.in* 中读入数据。"
+
+msgid "Read from the file *%s*."
+msgstr "从文件 *%s* 中读入数据。"
+
+msgid "Write to the standard output."
+msgstr "输出到标准输出。"
+
+msgid "Write to the file *%s.out*."
+msgstr "输出到文件 *%s.out* 中。"
+
+msgid "Write to the file *%s*."
+msgstr "输出到文件 *%s* 中。"
+
+msgid "download files"
+msgstr "下载目录"
+
+msgid "user's home path"
+msgstr "选手目录"
+
+msgid "problem path"
+msgstr "题目目录"
+
+msgid "See *%(in)s* and *%(ans)s* in the %(path)s."
+msgstr "见%(path)s下的 *%(in)s* 与 *%(ans)s*。"
+
+msgid "Related files:"
+msgstr "相关文件："
+
+msgid "This is an output-only problem."
+msgstr "这是一道提交答案题。"
+
+msgid "This is an interactive problem."
+msgstr "这是一道交互题。"
+
+msgid "Time:"
+msgstr "时间："
+
+msgid "year"
+msgstr "年"
+
+msgid "month"
+msgstr "月"
+
+msgid "day"
+msgstr "日"
+
+msgid "Content"
+msgstr "目~~录"
+
+msgid "This is an output-only problem. There are %d input files named *%s1.in* ~ *%s%d.in*."
+msgstr "这是一道提交答案题，共有%d组输入数据，这些数据命名为 *%s1.in* ~ *%s%d.in*。"
+
+msgid "For each input file, you should accomplish an output file named *%s1.out* ~ *%s%d.out*."
+msgstr "对于每组输入数据，你需要提交相应的输出文件 *%s1.out* ~ *%s%d.out*。"
+
+msgid "Case related"
+msgstr "见题面"
+
+msgid "yes"
+msgstr "是"
+
+msgid "no"
+msgstr "否"

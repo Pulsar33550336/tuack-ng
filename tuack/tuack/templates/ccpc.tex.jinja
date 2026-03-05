@@ -1,0 +1,67 @@
+{% extends 'template_base.tex.jinja' %}
+
+{% block header %}
+
+\lhead{\parbox{\textwidth}{\textnormal{
+	\footnotesize \mytitle
+	\ifdefined\subtitle
+		（\subtitle）
+	\fi
+}}}
+
+\rhead{\parbox{\textwidth}{\raggedleft\textnormal{
+	\footnotesize
+	\nouppercase \leftmark
+}}}
+\chead{}
+\lfoot{}
+\cfoot{\parbox{\textwidth}{\centering \footnotesize 第 \thepage{} 页 ~~~~ 共 \pageref{LastPage} 页}}
+\rfoot{}
+
+{% endblock %}
+
+{% block cover %}
+
+\thispagestyle{Cover}
+\begin{center}
+	{\includegraphics[scale=0.35]{ccpc.png} \par}  \vskip 2em
+	\ifdefined\engtitle
+		{\heiti\xiaochu \engtitle } 
+	\fi
+	\ifdefined\subtitle
+		{\heiti\xiaochu \subtitle } 
+	\fi
+	\par 
+	\ifdefined\theday
+		{\kaishu \chuhao \theday \par} \vskip 1em 
+	\fi
+	\ifdefined\thetime
+		{\heiti \sanhao \thetime \par}
+	\fi
+\end{center}
+
+\setcounter{tocdepth}{1}
+
+\tableofcontents
+
+{% endblock %}
+
+{% block statements %}
+
+{% for i in range(problems.__len__()) %}
+	\clearpage
+	\begin{center}
+		{\large \section{ 
+			{{ tools.chr(tools.ord('A') + i) }} . 
+			{{ probs[i].tr('title') }} ~~/~~ 
+			{{ probs[i]['name'].capitalize() }}
+		} }
+	\end{center}
+	
+	{{ problems[i] }}
+
+{% endfor %}
+
+{% endblock %}
+
+\end{document}

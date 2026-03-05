@@ -1,0 +1,72 @@
+{
+  "version": 3,
+  "folder": "problem",
+  "type": "program",
+  "name": "CF13C",
+  "title": "CF13C",
+  "time limit": 1.0,
+  "memory limit": "512 MiB",
+  "partial score": false,
+  "samples": [
+    {
+      "id": 1,
+      "input": "a.in",
+      "output": "a.ans"
+    }
+  ],
+  "args": {
+    "nmin": 450000,
+    "nmax": 500000
+  },
+  "data": [
+    {
+      "id": [
+        1,
+        2,
+        3
+      ],
+      "score": 10,
+      "subtask": 0,
+      "args": {
+        "nmin": 150,
+        "nmax": 200
+      }
+    },
+    {
+      "id": [
+        4,
+        5,
+        6
+      ],
+      "score": 10,
+      "subtask": 0,
+      "args": {
+        "nmin": 4500,
+        "nmax": 5000
+      }
+    },
+    {
+      "id": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "score": 10,
+      "subtask": 0,
+      "args": {
+        "nmin": 450000,
+        "nmax": 500000
+      }
+    }
+  ],
+  "subtasks": {
+    "0": "sum"
+  },
+  "tests": {
+    "std": {
+      "expected": "== 100",
+      "path": "test/std.cpp"
+    }
+  }
+}

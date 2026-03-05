@@ -1,0 +1,26 @@
+{%- if inline -%}
+	{
+{%- else -%}
+	\begin{figure}[ht]
+{%- endif -%}
+{%- if align -%}
+	{{ '\\centering' if align == 'middle' else '\\raggedright' if align == 'left' else '\\raggedleft' if align == 'right' else '\\' + align }}
+{%- endif -%}
+\includegraphics
+	{%- if size -%}
+		[scale={{size}}]
+	{%- endif -%}
+{ {{- resource -}} }
+{%- if label -%}
+	\label{ {{ label }} }
+{%- endif -%}
+{%- if caption -%}
+	\caption{ {{caption}} }
+{%- endif -%}
+{%- if inline -%}
+	}
+{%- else -%}
+	\end{figure}
+{%- endif -%}
+
+

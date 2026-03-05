@@ -1,0 +1,47 @@
+{% extends 'template_base.tex.jinja' %}
+
+{% block base %}
+
+\titleformat{\subsection}{\heiti\sanhao\bfseries}{}{1em}{}
+
+{% endblock %}
+
+{% block cover %}
+
+\title{
+	\bf
+	{{ tools.to_time(day['start time']).strftime('%Y') }} \\
+	\mytitle \\
+	\ifdefined \subtitle
+		\subtitle
+	\fi
+}
+\author{ \ifdefined \place \place \fi }
+\date{ {{ tools.to_time(day['start time']).strftime('%B X%d, %Y').replace('X0', '').replace('X', '') }} }
+
+\maketitle
+\thispagestyle{empty}
+
+{% endblock %}
+
+{% block statements %}
+
+{% for i in range(problems.__len__()) %}
+	\clearpage
+\section{ Problem S{{i + 1}}: {{ probs[i].tr('title') }} }
+	{{ problems[i] }}
+{% endfor %}
+
+{% endblock %}
+
+{% block header %}
+
+\renewcommand{\headrulewidth}{0pt}
+\lhead{}
+\rhead{}
+\chead{}
+\lfoot{}
+\cfoot{\parbox{\textwidth}{\centering \footnotesize \thepage{} / \pageref{LastPage} }}
+\rfoot{}
+
+{% endblock %}
