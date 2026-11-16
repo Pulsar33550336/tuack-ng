@@ -209,7 +209,16 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 Copyright (C) 2025-2026 Tuack-NG Develop Team.
 
-本项目的原创代码以 Affero General Public License 3.0 或更高版本（AGPL-3.0-or-later）获得许可。
+本项目中的以下库基于 MIT 获得许可：
+
+- [`tuack-lib`](crates/tuack-lib)
+- [`tuack-ng-parser`](crates/tuack-ng-parser)
+- [`tuack-config`](crates/tuack-config)
+- [`tuack-plugin-sdk`](crates/tuack-plugin-sdk)
+
+本项目的其余部分（包括但不限于应用本体）基于 Affero General Public License 3.0 或更高版本（AGPL-3.0-or-later）获得许可。
+
+许可证全文见以上各目录中的 `LICENSE` 与根目录的 [`LICENSE`](LICENSE)。
 
 ---
 
