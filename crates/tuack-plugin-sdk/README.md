@@ -7,4 +7,4 @@ JSON 编解码（字节载荷走 msgpack）、内存与错误处理由 SDK 接�
 
 完整示例见 [tuack-ng-plugin-example](https://github.com/tuackng/tuack-ng-plugin-example)。
 
-许可证：AGPL-3.0-or-later。
+许可证：MIT。

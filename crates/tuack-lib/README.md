@@ -6,4 +6,4 @@ Tuack-NG 的后端公共逻辑库：纯数据与 trait 定义。
 
 发布到 `crates.io` 上的版本主要供插件开发使用。
 
-许可证：AGPL-3.0-or-later。
+许可证：MIT。
