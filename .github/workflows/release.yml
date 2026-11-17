@@ -26,6 +26,33 @@ permissions:
   contents: read
 
 jobs:
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check version
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version=$(cargo metadata --no-deps --locked --format-version 1 \
+            | jq -r '.packages[] | select(.name == "tuack-ng") | .version')
+          if [ "$version" != "$TAG" ]; then
+            echo "标签 $TAG 与 tuack-ng 的版本 $version 不一致" >&2
+            exit 1
+          fi
+          echo "版本 $version"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-docs
+          path: doc/changelog/${{ github.event.inputs.tag || github.ref_name }}.md
+          if-no-files-found: error
+          retention-days: 7
+
   build-linux:
     needs: check
     name: linux (${{ matrix.arch }}, ${{ matrix.libc }})
@@ -62,16 +89,14 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
+          # 不缓存全局 zig cache，否则每次运行都会新增一份带 run id 的条目
+          use-cache: false
 
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-zigbuild@${{ env.CARGO_ZIGBUILD_VERSION }},cargo-deb@${{ env.CARGO_DEB_VERSION }}
 
       - uses: taiki-e/install-action@just
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: release-linux-${{ matrix.arch }}-${{ matrix.libc }}
 
       - name: Build zip
         run: just dist zip --libc "${{ matrix.libc }}"
@@ -117,12 +142,10 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
+          # 不缓存全局 zig cache，否则每次运行都会新增一份带 run id 的条目
+          use-cache: false
 
       - uses: taiki-e/install-action@just
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: release-windows-${{ matrix.arch }}
 
       - name: Build zip
         run: just dist zip
@@ -160,33 +183,6 @@ jobs:
 
       - name: Build Nix
         run: nix build .#tuack-ng -L
-
-  check:
-    name: check
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Check version
-        env:
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
-        run: |
-          version=$(cargo metadata --no-deps --locked --format-version 1 \
-            | jq -r '.packages[] | select(.name == "tuack-ng") | .version')
-          if [ "$version" != "$TAG" ]; then
-            echo "标签 $TAG 与 tuack-ng 的版本 $version 不一致" >&2
-            exit 1
-          fi
-          echo "版本 $version"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-docs
-          path: doc/changelog/${{ github.event.inputs.tag || github.ref_name }}.md
-          if-no-files-found: error
-          retention-days: 7
 
   release:
     name: release

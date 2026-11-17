@@ -40,6 +40,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: test-${{ matrix.platform }}
+          # PR 只读缓存，只有合进 master 的构建才写
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build
         run: cargo build --workspace --locked
