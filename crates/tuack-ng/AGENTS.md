@@ -1,4 +1,4 @@
-# tuack-ng
+# Tuack-NG
 
 命令行入口：命令解析、编排、进度条、错误输出与退出码。`gctx()` 是本 crate 的运行期全局上下文。题面检查/格式化规则在 `tuack-utils/doc`，不在本 crate。
 

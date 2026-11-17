@@ -1,4 +1,4 @@
-//! tuack-ng 处理器 / 渲染器 / 导出器插件的 Rust SDK。
+//! Tuack-NG 处理器 / 渲染器 / 导出器插件的 Rust SDK。
 //!
 //! - [`Processor`] / [`processor!`](crate::processor!)：处理题目 AST
 //! - [`Renderer`] / [`renderer!`](crate::renderer!)：渲染题面

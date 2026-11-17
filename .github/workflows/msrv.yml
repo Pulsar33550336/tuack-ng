@@ -1,0 +1,67 @@
+name: MSRV
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: msrv
+  cancel-in-progress: true
+
+jobs:
+  # 没有新提交时跳过，避免每天重复构建。
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Check for new commits
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/scripts/nightly-check.sh msrv.yml >> "$GITHUB_OUTPUT"
+
+  msrv:
+    name: msrv (${{ matrix.platform }})
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runner: windows-2025
+            platform: windows-x86_64
+          - runner: windows-11-arm
+            platform: windows-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Read the MSRV
+        id: msrv
+        shell: bash
+        run: |
+          version=$(cargo metadata --no-deps --locked --format-version 1 \
+            | jq -r '.packages[] | select(.name == "tuack-ng") | .rust_version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check with the MSRV
+        shell: bash
+        run: |
+          rustup toolchain install "${{ steps.msrv.outputs.version }}" --profile minimal
+          cargo "+${{ steps.msrv.outputs.version }}" check --workspace --all-targets --locked

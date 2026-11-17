@@ -1,4 +1,4 @@
-//! tuack-ng 下一代 Markdown 解析器。
+//! Tuack-NG 下一代 Markdown 解析器。
 //!
 //! 基于 `rushdown` 解析，产出可遍历的 AST。
 //!

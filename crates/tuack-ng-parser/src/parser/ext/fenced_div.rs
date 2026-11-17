@@ -239,7 +239,7 @@ fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
     }
 }
 
-/// 解析单个属性：`#id` / `.class` 简写、`key=value`，以及 tuack-ng 扩展的裸 `key`。
+/// 解析单个属性：`#id` / `.class` 简写、`key=value`，以及 Tuack-NG 扩展的裸 `key`。
 ///
 /// 对应 rushdown `parse_attribute`。失败返回 `None`，不回滚 reader 位置。
 fn parse_one_attribute(reader: &mut BlockReader) -> Option<(String, text::MultilineValue)> {

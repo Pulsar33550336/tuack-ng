@@ -2,7 +2,9 @@ use crate::prelude::*;
 
 /// Typst 模板 `data.json` 的结构
 ///
+//autocorrect-disable
 /// `Problem` 中多数文本字段为供模板直接展示的字符串（如 `1.0 秒`、`是`/`否`）。
+//autocorrect-enable
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataJson {
     pub title: String,
@@ -21,7 +23,9 @@ pub struct DataJson {
 pub struct Problem {
     pub name: String,
     pub title: String,
+    //autocorrect-disable
     /// 题目类型（`传统型`/`提交答案型`/`交互型`）
+    //autocorrect-enable
     #[serde(rename = "type")]
     pub problem_type: String,
     /// 题目目录名
@@ -36,7 +40,9 @@ pub struct Problem {
     pub memory_limit: String,
     /// 测试点或子任务数目
     pub testcase: String,
+    //autocorrect-disable
     /// 各测试点分数是否相等（`是`/`否`）
+    //autocorrect-enable
     pub point_equal: String,
     /// 允许提交的文件名
     pub submit_filename: Vec<String>,

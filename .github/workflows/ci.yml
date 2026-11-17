@@ -14,8 +14,52 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  TYPOS_VERSION: 1.51.1
+  AUTOCORRECT_VERSION: 2.16.3
 
 jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lint
+          # PR 只读缓存，只有合进 master 的构建才写
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: typos@${{ env.TYPOS_VERSION }}
+
+      - name: Install autocorrect
+        run: .github/scripts/install-autocorrect.sh "${{ env.AUTOCORRECT_VERSION }}"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Check spelling
+        run: |
+          typos
+          autocorrect --lint
+
+      - name: Check commit messages (pull request)
+        if: github.event_name == 'pull_request'
+        run: cargo xtask commit-msg --range "${{ github.event.pull_request.base.sha }}..HEAD"
+
+      - name: Check commit messages (push)
+        if: github.event_name == 'push'
+        run: cargo xtask commit-msg --range "${{ github.event.before }}..HEAD"
+
   test:
     name: test (${{ matrix.platform }})
     strategy:
@@ -48,29 +92,3 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace --locked
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-
-  lint-commits:
-    name: lint commits
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Build xtask
-        run: cargo build --locked -p tuack-xtask
-
-      - name: Check commit messages (pull request)
-        if: github.event_name == 'pull_request'
-        run: cargo xtask commit-msg --range "${{ github.event.pull_request.base.sha }}..HEAD"
-
-      - name: Check commit messages (push)
-        if: github.event_name == 'push'
-        run: cargo xtask commit-msg --range "${{ github.event.before }}..HEAD"
