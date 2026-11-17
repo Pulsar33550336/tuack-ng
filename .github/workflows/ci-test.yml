@@ -9,6 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  ZIG_VERSION: 0.17.0
+  CARGO_ZIGBUILD_VERSION: 0.23.4
+  CARGO_DEB_VERSION: 3.8.0
+
 jobs:
   dist:
     strategy:
@@ -78,29 +83,31 @@ jobs:
 
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.17.0
+          version: ${{ env.ZIG_VERSION }}
 
       - name: Install packaging tools
         if: runner.os == 'Linux'
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-zigbuild,cargo-deb
+          tool: cargo-zigbuild@${{ env.CARGO_ZIGBUILD_VERSION }},cargo-deb@${{ env.CARGO_DEB_VERSION }}
+
+      - uses: taiki-e/install-action@just
 
       - name: dist zip
         run: |
           if [ -n "${{ matrix.libc }}" ]; then
-            cargo xtask dist --libc "${{ matrix.libc }}" --platform zip
+            just dist zip --libc "${{ matrix.libc }}"
           else
-            cargo xtask dist --platform zip
+            just dist zip
           fi
 
       - name: dist deb
         if: matrix.deb
         run: |
           if [ -n "${{ matrix.libc }}" ]; then
-            cargo xtask dist --libc "${{ matrix.libc }}" --platform deb
+            just dist deb --libc "${{ matrix.libc }}"
           else
-            cargo xtask dist --platform deb
+            just dist deb
           fi
 
       - name: Install Nix

@@ -126,6 +126,7 @@
             zig
             cargo-zigbuild
             cargo-deb
+            just
           ];
 
           shellHook = ''

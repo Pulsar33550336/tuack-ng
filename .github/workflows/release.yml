@@ -1,0 +1,202 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '版本号（须有 doc/changelog/<版本号>.md）；留空则使用所选 ref'
+        required: false
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  ZIG_VERSION: 0.17.0
+  CARGO_ZIGBUILD_VERSION: 0.23.4
+  CARGO_DEB_VERSION: 3.8.0
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    name: linux (${{ matrix.arch }}, ${{ matrix.libc }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            libc: gnu
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04
+            arch: x86_64
+            libc: musl
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            libc: gnu
+            target: aarch64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            libc: musl
+            target: aarch64-unknown-linux-musl
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Add Rust target
+        run: rustup target add "${{ matrix.target }}"
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild@${{ env.CARGO_ZIGBUILD_VERSION }},cargo-deb@${{ env.CARGO_DEB_VERSION }}
+
+      - uses: taiki-e/install-action@just
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-linux-${{ matrix.arch }}-${{ matrix.libc }}
+
+      - name: Build zip
+        run: just dist zip --libc "${{ matrix.libc }}"
+
+      - name: Build deb
+        run: just dist deb --libc "${{ matrix.libc }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-linux-zip-${{ matrix.arch }}-${{ matrix.libc }}
+          path: target/tuack-ng-*.zip
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-linux-deb-${{ matrix.arch }}-${{ matrix.libc }}
+          path: target/debian/tuack-ng-*.deb
+          retention-days: 7
+
+  build-windows:
+    name: windows (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+          - runner: windows-11-arm
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Add Rust target
+        run: rustup target add "${{ matrix.target }}"
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - uses: taiki-e/install-action@just
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-windows-${{ matrix.arch }}
+
+      - name: Build zip
+        run: just dist zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-windows-${{ matrix.arch }}
+          path: target/tuack-ng-*.zip
+          retention-days: 7
+
+  build-nix:
+    name: nix (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v31
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Build Nix
+        run: nix build .#tuack-ng -L
+
+  upload-doc:
+    name: upload-doc
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-docs
+          path: doc/changelog/${{ github.event.inputs.tag || github.ref_name }}.md
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: release
+    needs: [build-linux, build-windows, build-nix, upload-doc]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: .
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          fail_on_unmatched_files: true
+          files: |
+            ./output-linux-deb-*/*.deb
+            ./output-linux-zip-*/*.zip
+            ./output-windows-*/*.zip
+          body_path: ./release-docs/${{ github.event.inputs.tag || github.ref_name }}.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
