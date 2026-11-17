@@ -79,14 +79,6 @@ maintainer-scripts = "../../doc/debian/"
 license-file = ["../../doc/debian/copyright", "0"]
 depends = "libc6 (>= 2.28)"
 
-[package.metadata.deb.variants.glibc_2_28]
-name = "tuack-ng"
-depends = "libc6 (>= 2.28)"
-
-[package.metadata.deb.variants.glibc_2_31]
-name = "tuack-ng"
-depends = "libc6 (>= 2.31)"
-
 [package.metadata.aur]
 files = [["../../assets/", "/usr/share/tuack-ng/", "755"]]
 depends = ["gcc-libs", "glibc"]

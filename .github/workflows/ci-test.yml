@@ -18,43 +18,31 @@ jobs:
           - name: linux-x64-glibc2.28
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-            glibc: "2.28"
             deb: true
             nix: true
-          - name: linux-x64-glibc2.31
-            os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            glibc: "2.31"
-            deb: true
-            nix: false
           - name: linux-x64-musl
             os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-            glibc: "2.28"
             deb: false
             nix: false
           - name: linux-arm64-glibc2.28
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            glibc: "2.28"
             deb: true
             nix: true
           - name: linux-arm64-musl
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            glibc: "2.28"
             deb: false
             nix: false
           - name: windows-x64
             os: windows-2025
             target: x86_64-pc-windows-msvc
-            glibc: "2.28"
             deb: false
             nix: false
           - name: windows-arm64
             os: windows-11-arm
             target: aarch64-pc-windows-msvc
-            glibc: "2.28"
             deb: false
             nix: false
 
@@ -95,15 +83,15 @@ jobs:
           tool: cargo-zigbuild,cargo-deb
 
       - name: dist zip
-        run: cargo xtask dist --target "${{ matrix.target }}" --glibc "${{ matrix.glibc }}" --platform zip
+        run: cargo xtask dist --target "${{ matrix.target }}" --platform zip
 
       - name: dist deb
         if: matrix.deb
-        run: cargo xtask dist --target "${{ matrix.target }}" --glibc "${{ matrix.glibc }}" --platform deb
+        run: cargo xtask dist --target "${{ matrix.target }}" --platform deb
 
       - name: dist nix
         if: matrix.nix
-        run: cargo xtask dist --target "${{ matrix.target }}" --glibc "${{ matrix.glibc }}" --platform nix
+        run: cargo xtask dist --target "${{ matrix.target }}" --platform nix
 
       - name: Inspect (Linux)
         if: runner.os == 'Linux'
@@ -126,7 +114,7 @@ jobs:
               max=$(objdump -T target/dist/tuack-ng | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1 | sed 's/^GLIBC_//')
               echo "max GLIBC symbol: $max"
               test -n "$max"
-              dpkg --compare-versions "$max" le "${{ matrix.glibc }}"
+              dpkg --compare-versions "$max" le "2.28"
               ;;
           esac
 
