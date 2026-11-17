@@ -1,0 +1,65 @@
+name: dist test
+
+on:
+  push:
+    branches: [ci-test]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Show preinstalled toolchain
+        run: |
+          rustup show
+          rustc --version
+          cargo --version
+          g++ --version | head -1
+          dpkg-deb --version | head -1
+          unzip -v | head -1
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.0
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild,cargo-deb
+
+      - name: dist zip
+        run: cargo xtask dist --target x86_64-unknown-linux-gnu --platform zip
+
+      - name: dist deb
+        run: cargo xtask dist --target x86_64-unknown-linux-gnu --platform deb
+
+      - name: dist nix
+        run: cargo xtask dist --target x86_64-unknown-linux-gnu --platform nix
+
+      - name: Inspect artifacts
+        run: |
+          set -eux
+          ls -l target/dist target/tuack-ng-*.zip target/debian/*.deb
+          file target/dist/tuack-ng
+          target/dist/tuack-ng --version
+          unzip -l target/tuack-ng-linux-x86_64.zip | head -30
+          dpkg-deb -I target/debian/*.deb
+          dpkg-deb -c target/debian/*.deb | grep -E 'usr/bin/tuack-ng|checkers/testlib.h|doc/tuack-ng/copyright'
+          test ! -e target/dist/assets/checkers/testlib.h
+          sudo dpkg -i target/debian/*.deb
+          tuack-ng --version
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-test
+          path: |
+            target/tuack-ng-*.zip
+            target/debian/*.deb
