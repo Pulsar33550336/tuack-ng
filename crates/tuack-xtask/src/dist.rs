@@ -25,6 +25,10 @@ pub enum Platform {
 
 /// 构建发布产物，并按平台打包。
 pub fn run(target: Target, platform: Platform, glibc: &str) -> Result<()> {
+    if target.is_gnu() {
+        validate_glibc(glibc)?;
+    }
+
     let sh = Shell::new()?;
     build_checkers(target, platform)?;
     build_binary(&sh, target, glibc)?;
@@ -40,6 +44,19 @@ pub fn run(target: Target, platform: Platform, glibc: &str) -> Result<()> {
         Platform::Zip => package_zip(&dist, target),
         Platform::Deb => package_deb(&sh, target, glibc),
     }
+}
+
+/// 校验 glibc 版本；仅支持 >= 2.28。
+fn validate_glibc(glibc: &str) -> Result<()> {
+    let (major, minor) = glibc
+        .split_once('.')
+        .context("glibc 版本格式应为 <major>.<minor>")?;
+    let major: u32 = major.parse().context("glibc 主版本号无效")?;
+    let minor: u32 = minor.parse().context("glibc 次版本号无效")?;
+    if (major, minor) < (2, 28) {
+        bail!("glibc 版本必须 >= 2.28");
+    }
+    Ok(())
 }
 
 fn build_checkers(target: Target, platform: Platform) -> Result<()> {

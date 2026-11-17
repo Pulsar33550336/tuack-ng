@@ -15,12 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: linux-x64-glibc2.17
-            os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            glibc: "2.17"
-            deb: true
-            nix: false
           - name: linux-x64-glibc2.28
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
