@@ -45,18 +45,30 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+
       - uses: actions/download-artifact@v4
         with:
           path: .
 
+      # 让 nightly 标签始终指向本次构建的提交，发布页才能跟着滚动。
+      - name: Move the nightly tag
+        run: |
+          git tag -f nightly
+          git push --force origin refs/tags/nightly
+
+      - name: Read the date
+        id: date
+        run: echo "date=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
       - name: Publish nightly
-        uses: andelf/nightly-release@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly
-          name: 'Nightly @ $$'
+          name: 'Nightly @ ${{ steps.date.outputs.date }}'
           prerelease: true
+          overwrite_files: true
+          fail_on_unmatched_files: true
           body: |
             > [!caution]
             >
@@ -69,3 +81,5 @@ jobs:
             ./output-linux-deb-*/*.deb
             ./output-linux-zip-*/*.zip
             ./output-windows-*/*.zip
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
