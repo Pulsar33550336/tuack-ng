@@ -1,0 +1,71 @@
+name: Nightly
+
+on:
+  # 每天在默认分支构建一次，产物发到滚动的 nightly 预发布。
+  schedule:
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # check 作业用 API 查询上一次成功的运行。
+  actions: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  # 没有新提交时跳过，省掉一次完整构建。
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check for new commits
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/scripts/nightly-check.sh nightly.yml >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    uses: ./.github/workflows/build.yml
+
+  publish:
+    name: publish
+    needs: [check, build]
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: .
+
+      # 这个 action 会把 nightly 标签移到当前提交、删掉旧 asset 再上传新的，
+      # 提交没变时按 only-when-changed 跳过。
+      - name: Publish nightly
+        uses: andelf/nightly-release@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tag_name: nightly
+          name: 'Nightly Release @ $$'
+          prerelease: true
+          body: |
+            每天从 `master` 自动构建的预发布版本，可能不稳定。
+
+            - 提交：${{ github.sha }}
+          files: |
+            ./output-linux-deb-*/*.deb
+            ./output-linux-zip-*/*.zip
+            ./output-windows-*/*.zip
