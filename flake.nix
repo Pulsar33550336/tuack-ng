@@ -69,6 +69,7 @@
           TESTLIB_PATH = "${pkgs.testlib}/include/testlib/testlib.h";
           VERGEN_IDEMPOTENT = 1;
           doInstallCargoArtifacts = false;
+          doNotPostBuildInstallCargoBinaries = true;
 
           buildPhaseCargoCommand = ''
             cargo run --release --locked --offline -p tuack-xtask -- dist --platform nix
