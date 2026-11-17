@@ -1,0 +1,142 @@
+# 发布构建：linux（gnu/musl × x86_64/arm64）、windows（x86_64/arm64），再加
+# nix 门禁。release.yml 与 nightly.yml 通过 `uses` 复用，产物以 artifact 形式
+# 留给调用方处理。
+name: Build
+
+on:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+  ZIG_VERSION: 0.17.0
+  CARGO_ZIGBUILD_VERSION: 0.23.4
+  CARGO_DEB_VERSION: 3.8.0
+
+jobs:
+  linux:
+    name: linux (${{ matrix.arch }}, ${{ matrix.libc }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            libc: gnu
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04
+            arch: x86_64
+            libc: musl
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            libc: gnu
+            target: aarch64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            libc: musl
+            target: aarch64-unknown-linux-musl
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Add Rust target
+        run: rustup target add "${{ matrix.target }}"
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          # 不缓存全局 zig cache，否则每次运行都会新增一份带 run id 的条目
+          use-cache: false
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild@${{ env.CARGO_ZIGBUILD_VERSION }},cargo-deb@${{ env.CARGO_DEB_VERSION }}
+
+      - uses: taiki-e/install-action@just
+
+      - name: Build zip
+        run: just dist zip --libc "${{ matrix.libc }}"
+
+      - name: Build deb
+        run: just dist deb --libc "${{ matrix.libc }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-linux-zip-${{ matrix.arch }}-${{ matrix.libc }}
+          path: target/tuack-ng-*.zip
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-linux-deb-${{ matrix.arch }}-${{ matrix.libc }}
+          path: target/debian/tuack-ng-*.deb
+          retention-days: 7
+
+  windows:
+    name: windows (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+          - runner: windows-11-arm
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Add Rust target
+        run: rustup target add "${{ matrix.target }}"
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          # 不缓存全局 zig cache，否则每次运行都会新增一份带 run id 的条目
+          use-cache: false
+
+      - uses: taiki-e/install-action@just
+
+      - name: Build zip
+        run: just dist zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-windows-${{ matrix.arch }}
+          path: target/tuack-ng-*.zip
+          retention-days: 7
+
+  nix:
+    name: nix (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v31
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Build Nix
+        run: nix build .#tuack-ng -L
