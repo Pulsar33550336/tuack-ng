@@ -22,7 +22,7 @@
       crane,
       templates-src,
     }:
-    flake-utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
       let
         cargoToml = fromTOML (builtins.readFile ./Cargo.toml);
@@ -48,15 +48,13 @@
           inherit src;
           pname = "tuack-ng";
           inherit version;
-          cargoExtraArgs = "-p tuack-ng --locked --no-default-features --features=nix";
+          cargoExtraArgs = "--locked -p tuack-ng -p tuack-xtask";
         };
 
         tuack-ng = craneLib.buildPackage {
           inherit src cargoArtifacts;
           pname = "tuack-ng";
           inherit version;
-
-          cargoExtraArgs = "-p tuack-ng --locked --no-default-features --features=nix";
 
           nativeBuildInputs = with pkgs; [
             gcc
@@ -68,43 +66,47 @@
             testlib
           ];
 
-          NIX_TESTLIB_PATH = "${pkgs.testlib}/include/testlib/testlib.h";
+          TESTLIB_PATH = "${pkgs.testlib}/include/testlib/testlib.h";
           VERGEN_IDEMPOTENT = 1;
+          doInstallCargoArtifacts = false;
+          doNotPostBuildInstallCargoBinaries = true;
 
-          postInstall = ''
-            # 安装静态资源
-            mkdir -p $out/share/tuack-ng
-            cp -r assets/* $out/share/tuack-ng/
+          buildPhaseCargoCommand = ''
+            cargo run --release --locked --offline -p tuack-xtask -- dist --platform nix
+          '';
 
-            # 使用系统的 testlib
-            ln -sf ${pkgs.testlib}/include/testlib/testlib.h \
-              $out/share/tuack-ng/checkers/testlib.h
+          installPhaseCommand = ''
+            mkdir -p $out/bin $out/share/tuack-ng
+            cp target/dist/tuack-ng $out/bin/
+            cp -r target/dist/assets/. $out/share/tuack-ng/
 
-            # 安装 templates
+            installShellCompletion --cmd tuack-ng \
+              --bash target/dist/completions/bash \
+              --fish target/dist/completions/fish \
+              --zsh target/dist/completions/zsh
+
+            install -Dm644 target/dist/LICENSE \
+              $out/share/licenses/tuack-ng/LICENSE
+            install -Dm644 target/dist/NOTICE.md \
+              $out/share/licenses/tuack-ng/NOTICE.md
+
             mkdir -p $out/share/tuack-ng/templates
-            cp -r ${templates-src}/* \
-              $out/share/tuack-ng/templates/
+            cp -r ${templates-src}/* $out/share/tuack-ng/templates/
             chmod -R u+w $out/share/tuack-ng/templates/
 
-            # 生成 shell 补全
-            $out/bin/tuack-ng gen complete bash > tuack-ng.bash
-            $out/bin/tuack-ng gen complete fish > tuack-ng.fish
-            $out/bin/tuack-ng gen complete zsh > _tuack-ng
-
-            installShellCompletion \
-              --bash tuack-ng.bash \
-              --fish tuack-ng.fish \
-              --zsh _tuack-ng
+            ln -sf ${pkgs.testlib}/include/testlib/testlib.h \
+              $out/share/tuack-ng/checkers/testlib.h
           '';
 
           meta = with pkgs.lib; {
             description = "重构后的 tuack 项目，旨在提供更加高效和轻量的出题体验。";
             homepage = "https://github.com/tuackng/tuack-ng";
-            license = licenses.agpl3Plus;
-            platforms = platforms.unix;
+            license = with licenses; [ agpl3Plus mit ];
+            platforms = [ "x86_64-linux" "aarch64-linux" ];
             mainProgram = "tuack-ng";
           };
         };
+
       in
       {
         packages = {
@@ -121,10 +123,13 @@
             gcc
             typst
             testlib
+            zig
+            cargo-zigbuild
+            cargo-deb
           ];
 
           shellHook = ''
-            export NIX_TESTLIB_PATH="${pkgs.testlib}/include/testlib/testlib.h"
+            export TESTLIB_PATH="${pkgs.testlib}/include/testlib/testlib.h"
             export RUST_SRC_PATH="${rustToolchain}/lib/rustlib/src/rust/library"
 
             echo 'Tuack-NG Dev Shell -- run `just --list` for information'

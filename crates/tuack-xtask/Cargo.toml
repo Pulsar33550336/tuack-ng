@@ -1,0 +1,15 @@
+[package]
+name = "tuack-xtask"
+version = "0.1.0"
+description = "Tuack-NG 的构建与 CI 辅助工具"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+xshell = "0.2.7"
+zip.workspace = true
