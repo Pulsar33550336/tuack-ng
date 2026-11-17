@@ -1,88 +1,14 @@
 #!/bin/sh
-# 校验提交信息是否符合 CONTRIBUTING.md 的「提交」一节。
-#
-# 安装：just init（把 core.hooksPath 指向本目录）。
-# 撤销：git config --unset core.hooksPath；临时跳过：git commit --no-verify。
+# 校验提交信息是否符合 CONTRIBUTING.md 的「提交」一节，规则由 xtask 实现。
 
 set -u
 
 msg_file=${1:-}
 [ -n "$msg_file" ] && [ -f "$msg_file" ] || exit 0
 
-# 取首行作为标题，跳过空行与注释行。
-subject=$(awk 'NF && $0 !~ /^#/ { print; exit }' "$msg_file")
-[ -n "$subject" ] || exit 0
-
-# 合并、回滚、fixup/squash 提交不校验。
-case "$subject" in
-    "Merge "* | "Revert "* | "revert:"* | "fixup!"* | "squash!"*) exit 0 ;;
-esac
-
-fail() {
-    echo "提交信息不符合规范：$1" >&2
-    echo >&2
-    echo "  当前标题：$subject" >&2
-    echo "  期望格式：类型(范围): 描述" >&2
-    echo "  例如：    fix(cli/generate): gen code 跳过 interactive 目录" >&2
-    echo "  类型：    feat fix perf refactor docs test ci build chore revert（发布提交用 release）" >&2
-    echo "  范围：    cli/lib/config/utils/parser/plugin-sdk/assets 下的模块路径，" >&2
-    echo "            或仓库级 ci/nix/release/deps；跨包、跨领域时不写范围" >&2
-    echo "  类型见约定式提交规范，范围见 CONTRIBUTING.md 的「提交」一节。" >&2
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "提交信息校验需要 cargo，但当前 PATH 里找不到它" >&2
     exit 1
-}
-
-case "$subject" in
-    *": "*) ;;
-    *) fail "缺少「: 」分隔符" ;;
-esac
-
-head_part=${subject%%": "*}
-desc=${subject#*": "}
-
-# 破坏性变更标记。
-breaking=no
-case "$head_part" in
-    *"!") breaking=yes && head_part=${head_part%!} ;;
-esac
-
-# 类型与范围。
-scope=""
-case "$head_part" in
-    *"("*")"*)
-        type=${head_part%%(*}
-        scope=${head_part#*(}
-        scope=${scope%)*}
-        ;;
-    *) type=$head_part ;;
-esac
-
-case "$type" in
-    feat | fix | perf | refactor | docs | test | ci | build | chore | revert | release) ;;
-    "") fail "缺少类型" ;;
-    *) fail "未知类型：$type" ;;
-esac
-
-if [ -n "$scope" ]; then
-    case "$scope" in
-        *[!a-z0-9_/-]*) fail "范围只能用小写字母、数字、下划线、减号与斜杠：$scope" ;;
-        */ | /* | *//*) fail "范围路径不合法：$scope" ;;
-    esac
-    top=${scope%%/*}
-    case "$top" in
-        cli | lib | config | utils | parser | plugin-sdk | assets | nix | deps) ;;
-        *) fail "未知的顶层范围：$top" ;;
-    esac
 fi
 
-# 描述。
-case "$desc" in
-    "") fail "描述为空" ;;
-    *。 | *.) fail "描述句末不要加句号" ;;
-esac
-
-# 破坏性变更必须在正文写明迁移方式。
-if [ "$breaking" = yes ] && ! grep -qE '^BREAKING[ -]CHANGE: ' "$msg_file"; then
-    fail "破坏性变更需要在正文写一行 BREAKING CHANGE: <需要如何迁移>"
-fi
-
-exit 0
+exec cargo run --quiet --locked -p tuack-xtask -- commit-msg "$msg_file"

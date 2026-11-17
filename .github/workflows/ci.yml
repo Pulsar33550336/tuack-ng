@@ -52,3 +52,23 @@ jobs:
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  lint-commits:
+    name: lint commits
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Build xtask
+        run: cargo build --locked -p tuack-xtask
+
+      - name: Check commit messages (pull request)
+        if: github.event_name == 'pull_request'
+        run: cargo xtask commit-msg --range "${{ github.event.pull_request.base.sha }}..HEAD"
+
+      - name: Check commit messages (push)
+        if: github.event_name == 'push'
+        run: cargo xtask commit-msg --range "${{ github.event.before }}..HEAD"

@@ -27,6 +27,7 @@ permissions:
 
 jobs:
   build-linux:
+    needs: check
     name: linux (${{ matrix.arch }}, ${{ matrix.libc }})
     strategy:
       fail-fast: false
@@ -91,6 +92,7 @@ jobs:
           retention-days: 7
 
   build-windows:
+    needs: check
     name: windows (${{ matrix.arch }})
     strategy:
       fail-fast: false
@@ -132,6 +134,7 @@ jobs:
           retention-days: 7
 
   build-nix:
+    needs: check
     name: nix (${{ matrix.arch }})
     strategy:
       fail-fast: false
@@ -158,13 +161,25 @@ jobs:
       - name: Build Nix
         run: nix build .#tuack-ng -L
 
-  upload-doc:
-    name: upload-doc
+  check:
+    name: check
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v7
+
+      - name: Check version
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version=$(cargo metadata --no-deps --locked --format-version 1 \
+            | jq -r '.packages[] | select(.name == "tuack-ng") | .version')
+          if [ "$version" != "$TAG" ]; then
+            echo "标签 $TAG 与 tuack-ng 的版本 $version 不一致" >&2
+            exit 1
+          fi
+          echo "版本 $version"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -175,7 +190,7 @@ jobs:
 
   release:
     name: release
-    needs: [build-linux, build-windows, build-nix, upload-doc]
+    needs: [check, build-linux, build-windows, build-nix]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
