@@ -1,6 +1,3 @@
-# 发布构建：linux（gnu/musl × x86_64/arm64）、windows（x86_64/arm64），再加
-# nix 门禁。release.yml 与 nightly.yml 通过 `uses` 复用，产物以 artifact 形式
-# 留给调用方处理。
 name: Build
 
 on:

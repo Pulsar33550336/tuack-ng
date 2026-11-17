@@ -1,14 +1,12 @@
 name: Nightly
 
 on:
-  # 每天在默认分支构建一次，产物发到滚动的 nightly 预发布。
   schedule:
     - cron: "0 16 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
-  # check 作业用 API 查询上一次成功的运行。
   actions: read
 
 concurrency:
@@ -51,18 +49,20 @@ jobs:
         with:
           path: .
 
-      # 这个 action 会把 nightly 标签移到当前提交、删掉旧 asset 再上传新的，
-      # 提交没变时按 only-when-changed 跳过。
       - name: Publish nightly
         uses: andelf/nightly-release@v2
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           tag_name: nightly
-          name: 'Nightly Release @ $$'
+          name: 'Nightly @ $$'
           prerelease: true
           body: |
-            每天从 `master` 自动构建的预发布版本，可能不稳定。
+            > [!caution]
+            >
+            > # 警告！请不要使用该版本！
+            >
+            > 这是从 `master` 自动构建的 Nightly 版本，可能极不稳定且不向下兼容，除非您知道自己在做什么，否则不要使用该版本。
 
             - 提交：${{ github.sha }}
           files: |
