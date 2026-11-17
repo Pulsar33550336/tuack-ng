@@ -18,22 +18,26 @@ jobs:
           - name: linux-x64-glibc2.28
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
+            libc: gnu
             deb: true
             nix: true
           - name: linux-x64-musl
             os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-            deb: false
+            libc: musl
+            deb: true
             nix: false
           - name: linux-arm64-glibc2.28
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
+            libc: gnu
             deb: true
             nix: true
           - name: linux-arm64-musl
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            deb: false
+            libc: musl
+            deb: true
             nix: false
           - name: windows-x64
             os: windows-2025
@@ -83,15 +87,33 @@ jobs:
           tool: cargo-zigbuild,cargo-deb
 
       - name: dist zip
-        run: cargo xtask dist --target "${{ matrix.target }}" --platform zip
+        run: |
+          if [ -n "${{ matrix.libc }}" ]; then
+            cargo xtask dist --libc "${{ matrix.libc }}" --platform zip
+          else
+            cargo xtask dist --platform zip
+          fi
 
       - name: dist deb
         if: matrix.deb
-        run: cargo xtask dist --target "${{ matrix.target }}" --platform deb
+        run: |
+          if [ -n "${{ matrix.libc }}" ]; then
+            cargo xtask dist --libc "${{ matrix.libc }}" --platform deb
+          else
+            cargo xtask dist --platform deb
+          fi
 
-      - name: dist nix
+      - name: Install Nix
         if: matrix.nix
-        run: cargo xtask dist --target "${{ matrix.target }}" --platform nix
+        uses: nixbuild/nix-quick-install-action@v31
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: nix build
+        if: matrix.nix
+        run: nix build .#tuack-ng -L
 
       - name: Inspect (Linux)
         if: runner.os == 'Linux'
@@ -125,9 +147,6 @@ jobs:
             tuack-ng --version
           fi
 
-          if [ "${{ matrix.nix }}" = "true" ]; then
-            test ! -e target/dist/assets/checkers/testlib.h
-          fi
 
       - name: Inspect (Windows)
         if: runner.os == 'Windows'

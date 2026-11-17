@@ -74,11 +74,13 @@ nix = []
 assets = [
     ["../../target/dist/tuack-ng", "usr/bin/", "755"],
     ["../../target/dist/assets/**/*", "usr/share/tuack-ng/", "755"],
+    ["../../target/dist/completions/bash", "usr/share/bash-completion/completions/tuack-ng", "644"],
+    ["../../target/dist/completions/zsh", "usr/share/zsh/site-functions/_tuack-ng", "644"],
+    ["../../target/dist/completions/fish", "usr/share/fish/vendor_completions.d/tuack-ng.fish", "644"],
 ]
-maintainer-scripts = "../../doc/debian/"
-license-file = ["../../doc/debian/copyright", "0"]
+license-file = ["../../packaging/debian/copyright", "0"]
 depends = "libc6 (>= 2.28)"
 
-[package.metadata.aur]
-files = [["../../assets/", "/usr/share/tuack-ng/", "755"]]
-depends = ["gcc-libs", "glibc"]
+[package.metadata.deb.variants.musl]
+name = "tuack-ng"
+depends = ""

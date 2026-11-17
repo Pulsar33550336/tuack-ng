@@ -1,7 +1,10 @@
 //! 构建目标。
 
+use std::env;
 use std::fmt;
-use std::str::FromStr;
+
+use anyhow::{Result, bail};
+use clap::ValueEnum;
 
 /// 发布构建目标。
 #[derive(Clone, Copy, Debug)]
@@ -11,7 +14,39 @@ pub struct Target {
     libc: Libc,
 }
 
+/// 命令行选择的 C 库。
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum LibcChoice {
+    Gnu,
+    Musl,
+}
+
 impl Target {
+    /// 从当前运行平台构造目标，`libc` 省略时取平台默认值。
+    pub fn from_host(libc: Option<LibcChoice>) -> Result<Self> {
+        let platform = match env::consts::OS {
+            "linux" => Platform::Linux,
+            "windows" => Platform::Windows,
+            other => bail!("不支持的操作系统：{other}"),
+        };
+        let arch = match env::consts::ARCH {
+            "x86_64" => Arch::X86_64,
+            "aarch64" => Arch::Aarch64,
+            other => bail!("不支持的架构：{other}"),
+        };
+        let libc = match (platform, libc) {
+            (Platform::Linux, None | Some(LibcChoice::Gnu)) => Libc::Gnu,
+            (Platform::Linux, Some(LibcChoice::Musl)) => Libc::Musl,
+            (Platform::Windows, None) => Libc::Msvc,
+            (Platform::Windows, Some(_)) => bail!("Windows 只能使用 msvc"),
+        };
+        Ok(Self {
+            platform,
+            arch,
+            libc,
+        })
+    }
+
     /// 是否使用 glibc。
     pub fn is_gnu(self) -> bool {
         matches!(self.libc, Libc::Gnu)
@@ -44,13 +79,18 @@ impl Target {
         };
         let libc = match self.libc {
             Libc::Musl => "-musl",
-            Libc::Gnu | Libc::Msvc => "",
+            _ => "",
         };
         format!("{platform}-{arch}{libc}")
     }
 
     /// zig 编译 C++ 时使用的 musl 目标，例如 `x86_64-linux-musl`。
+    ///
+    /// # Panics
+    ///
+    /// 目标不是 musl 时 panic。
     pub fn musl_zig_target(self) -> String {
+        assert!(self.is_musl(), "musl_zig_target 仅适用于 musl 目标");
         let arch = match self.arch {
             Arch::X86_64 => "x86_64",
             Arch::Aarch64 => "aarch64",
@@ -111,27 +151,6 @@ impl fmt::Display for Libc {
             Self::Gnu => "gnu",
             Self::Musl => "musl",
             Self::Msvc => "msvc",
-        })
-    }
-}
-
-impl FromStr for Target {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (platform, arch, libc) = match s {
-            "x86_64-unknown-linux-gnu" => (Platform::Linux, Arch::X86_64, Libc::Gnu),
-            "x86_64-unknown-linux-musl" => (Platform::Linux, Arch::X86_64, Libc::Musl),
-            "aarch64-unknown-linux-gnu" => (Platform::Linux, Arch::Aarch64, Libc::Gnu),
-            "aarch64-unknown-linux-musl" => (Platform::Linux, Arch::Aarch64, Libc::Musl),
-            "x86_64-pc-windows-msvc" => (Platform::Windows, Arch::X86_64, Libc::Msvc),
-            "aarch64-pc-windows-msvc" => (Platform::Windows, Arch::Aarch64, Libc::Msvc),
-            _ => return Err(format!("不支持的目标：{s}")),
-        };
-        Ok(Self {
-            platform,
-            arch,
-            libc,
         })
     }
 }

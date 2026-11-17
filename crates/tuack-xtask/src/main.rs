@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
 use crate::dist::Platform;
-use crate::target::Target;
+use crate::target::LibcChoice;
 
 mod checkers;
 mod dist;
@@ -35,18 +35,19 @@ struct BuildCheckersArgs {
 
 #[derive(Debug, Args)]
 struct DistArgs {
-    /// 构建目标三元组，例如 x86_64-unknown-linux-gnu
-    #[arg(long)]
-    target: Target,
     /// 打包平台
     #[arg(long, value_enum)]
     platform: Platform,
+    /// 目标 C 库
+    #[cfg_attr(not(windows), arg(long, value_enum, default_value = "gnu"))]
+    #[cfg_attr(windows, arg(skip))]
+    libc: Option<LibcChoice>,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Commands::BuildCheckers(args) => checkers::build(args.static_link),
-        Commands::Dist(args) => dist::run(args.target, args.platform),
+        Commands::Dist(args) => dist::run(args.platform, args.libc),
     }
 }

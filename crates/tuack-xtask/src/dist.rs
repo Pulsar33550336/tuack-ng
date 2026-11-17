@@ -12,7 +12,7 @@ use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
 use crate::checkers;
-use crate::target::Target;
+use crate::target::{LibcChoice, Target};
 use crate::workspace;
 
 /// 发布产物的打包平台。
@@ -24,19 +24,24 @@ pub enum Platform {
 }
 
 /// 构建发布产物，并按平台打包。
-pub fn run(target: Target, platform: Platform) -> Result<()> {
+pub fn run(platform: Platform, libc: Option<LibcChoice>) -> Result<()> {
+    let target = Target::from_host(libc)?;
     let sh = Shell::new()?;
     build_checkers(target, platform)?;
-    build_binary(&sh, target)?;
+    build_binary(&sh, target, platform)?;
 
+    // Nix 的 testlib 由 Nix 自行符号链接
     let testlib = match platform {
         Platform::Nix => None,
         Platform::Zip | Platform::Deb => Some(checkers::testlib_source()),
     };
-    let dist = stage(target, testlib.as_deref())?;
+    let dist = stage(target, &sh, testlib.as_deref())?;
 
     match platform {
-        Platform::Nix => Ok(()),
+        Platform::Nix => {
+            // 由 Nix 处理打包
+            Ok(())
+        }
         Platform::Zip => package_zip(&dist, target),
         Platform::Deb => package_deb(&sh, target),
     }
@@ -53,46 +58,60 @@ fn build_checkers(target: Target, platform: Platform) -> Result<()> {
             target.musl_zig_target(),
         ]
     } else if target.is_windows() {
-        let arch = if target.is_aarch64() {
-            "aarch64"
-        } else {
-            "x86_64"
-        };
         vec![
             "zig".to_owned(),
             "c++".to_owned(),
             "-target".to_owned(),
-            format!("{arch}-windows-gnu"),
+            format!(
+                "{}-windows-gnu",
+                if target.is_aarch64() {
+                    "aarch64"
+                } else {
+                    "x86_64"
+                }
+            ),
         ]
     } else {
         vec!["g++".to_owned()]
     };
-    let static_link = !matches!(platform, Platform::Nix);
-    checkers::build_with(&checkers_dir, &testlib, &compiler, static_link)
+    checkers::build_with(
+        &checkers_dir,
+        &testlib,
+        &compiler,
+        // Nix 下不应也无须静态链接
+        !matches!(platform, Platform::Nix),
+    )
 }
 
-fn build_binary(sh: &Shell, target: Target) -> Result<()> {
-    let build_target = if target.is_gnu() {
+fn build_binary(sh: &Shell, target: Target, platform: Platform) -> Result<()> {
+    let nix = matches!(platform, Platform::Nix);
+    let build_target = if target.is_gnu() && !nix {
         format!("{target}.2.28")
     } else {
         target.to_string()
     };
-    let subcommand = if target.is_windows() {
+    let subcommand = if target.is_windows() || nix {
         "build"
     } else {
         "zigbuild"
     };
-    cmd!(
-        sh,
-        "cargo {subcommand} --release --locked -p tuack-ng --target {build_target}"
-    )
-    .run()?;
+    let mut cmd = sh
+        .cmd("cargo")
+        .arg(subcommand)
+        .arg("--release")
+        .arg("--locked")
+        .arg("-p")
+        .arg("tuack-ng");
+    if nix {
+        cmd = cmd.arg("--no-default-features").arg("--features=nix");
+    }
+    cmd.arg("--target").arg(build_target).run()?;
     Ok(())
 }
 
-fn stage(target: Target, testlib: Option<&Path>) -> Result<PathBuf> {
+fn stage(target: Target, sh: &Shell, testlib: Option<&Path>) -> Result<PathBuf> {
     let root = workspace::root();
-    let dist = root.join("target").join("dist");
+    let dist = root.join("target/dist");
 
     if dist.exists() {
         fs::remove_dir_all(&dist).with_context(|| format!("无法清空 {}", dist.display()))?;
@@ -100,16 +119,12 @@ fn stage(target: Target, testlib: Option<&Path>) -> Result<PathBuf> {
     fs::create_dir_all(&dist).with_context(|| format!("无法创建 {}", dist.display()))?;
 
     let exe = format!("tuack-ng{}", env::consts::EXE_SUFFIX);
-    let bin = root
-        .join("target")
-        .join(target.to_string())
-        .join("release")
-        .join(&exe);
+    let bin = root.join(format!("target/{target}/release/{exe}"));
     fs::copy(&bin, dist.join(&exe)).with_context(|| format!("无法复制 {}", bin.display()))?;
 
     copy_dir_all(&root.join("assets"), &dist.join("assets"))?;
 
-    let testlib_dest = dist.join("assets").join("checkers").join("testlib.h");
+    let testlib_dest = dist.join("assets/checkers/testlib.h");
     if let Some(testlib) = testlib {
         fs::create_dir_all(testlib_dest.parent().expect("testlib.h 应有父目录"))?;
         fs::copy(testlib, &testlib_dest)
@@ -118,16 +133,40 @@ fn stage(target: Target, testlib: Option<&Path>) -> Result<PathBuf> {
         fs::remove_file(&testlib_dest)
             .with_context(|| format!("无法删除 {}", testlib_dest.display()))?;
     }
+
+    let license = root.join("LICENSE");
+    fs::copy(&license, dist.join("LICENSE"))
+        .with_context(|| format!("无法复制 {}", license.display()))?;
+    let notice = root.join("packaging/NOTICE.md");
+    fs::copy(&notice, dist.join("NOTICE.md"))
+        .with_context(|| format!("无法复制 {}", notice.display()))?;
+
+    let completions = dist.join("completions");
+    fs::create_dir_all(&completions)
+        .with_context(|| format!("无法创建 {}", completions.display()))?;
+    for shell in ["bash", "zsh", "fish"] {
+        let script = cmd!(sh, "{bin} gen complete {shell}").read()?;
+        let path = completions.join(shell);
+        fs::write(&path, script).with_context(|| format!("无法写入 {}", path.display()))?;
+    }
     Ok(dist)
 }
 
 fn package_deb(sh: &Shell, target: Target) -> Result<()> {
     let triple = target.to_string();
-    cmd!(
-        sh,
-        "cargo deb --no-build --no-strip -p tuack-ng --target {triple}"
-    )
-    .run()?;
+    let mut cmd = sh
+        .cmd("cargo")
+        .arg("deb")
+        .arg("--no-build")
+        .arg("--no-strip")
+        .arg("-p")
+        .arg("tuack-ng")
+        .arg("--target")
+        .arg(&triple);
+    if target.is_musl() {
+        cmd = cmd.arg("--variant=musl");
+    }
+    cmd.run()?;
     Ok(())
 }
 
