@@ -19,6 +19,10 @@ build: build-checkers
 build-release: build-checkers
     @cargo build --release
 
+# 构建发布产物
+dist platform *args:
+    @cargo xtask dist --platform {{platform}} {{args}}
+
 # 运行
 [no-cd]
 run +args="": build-checkers
