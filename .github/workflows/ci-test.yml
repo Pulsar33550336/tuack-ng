@@ -1,0 +1,171 @@
+name: dist test
+
+on:
+  push:
+    branches: [ci-test]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dist:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64-glibc2.28
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            libc: gnu
+            deb: true
+            nix: true
+          - name: linux-x64-musl
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            libc: musl
+            deb: true
+            nix: false
+          - name: linux-arm64-glibc2.28
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            libc: gnu
+            deb: true
+            nix: true
+          - name: linux-arm64-musl
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            libc: musl
+            deb: true
+            nix: false
+          - name: windows-x64
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+            deb: false
+            nix: false
+          - name: windows-arm64
+            os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            deb: false
+            nix: false
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Add Rust target
+        run: rustup target add "${{ matrix.target }}"
+
+      - name: Show toolchain
+        run: |
+          rustup show
+          rustc --version
+          cargo --version
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            g++ --version | head -1
+            dpkg-deb --version | head -1
+            unzip -v | head -1
+          fi
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.0
+
+      - name: Install packaging tools
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild,cargo-deb
+
+      - name: dist zip
+        run: |
+          if [ -n "${{ matrix.libc }}" ]; then
+            cargo xtask dist --libc "${{ matrix.libc }}" --platform zip
+          else
+            cargo xtask dist --platform zip
+          fi
+
+      - name: dist deb
+        if: matrix.deb
+        run: |
+          if [ -n "${{ matrix.libc }}" ]; then
+            cargo xtask dist --libc "${{ matrix.libc }}" --platform deb
+          else
+            cargo xtask dist --platform deb
+          fi
+
+      - name: Install Nix
+        if: matrix.nix
+        uses: nixbuild/nix-quick-install-action@v31
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: nix build
+        if: matrix.nix
+        run: nix build .#tuack-ng -L
+
+      - name: Inspect (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -eux
+          ls -l target/dist target/tuack-ng-*.zip
+          file target/dist/tuack-ng
+          target/dist/tuack-ng --version
+
+          python3 - <<'PY'
+          import glob, zipfile
+          archive = glob.glob('target/tuack-ng-*.zip')[0]
+          names = zipfile.ZipFile(archive).namelist()
+          print(f"{archive}: {len(names)} entries")
+          print("\n".join(names[:30]))
+          PY
+
+          case "${{ matrix.target }}" in
+            *-gnu)
+              max=$(objdump -T target/dist/tuack-ng | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1 | sed 's/^GLIBC_//')
+              echo "max GLIBC symbol: $max"
+              test -n "$max"
+              dpkg --compare-versions "$max" le "2.28"
+              ;;
+          esac
+
+          if [ "${{ matrix.deb }}" = "true" ]; then
+            dpkg-deb -I target/debian/*.deb
+            dpkg-deb -c target/debian/*.deb | grep -E 'usr/bin/tuack-ng|checkers/testlib.h|doc/tuack-ng/copyright'
+            sudo dpkg -i target/debian/*.deb
+            tuack-ng --version
+          fi
+
+
+      - name: Inspect (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          set -eux
+          ls -l target/dist
+          target/dist/tuack-ng.exe --version
+          python - <<'PY'
+          import glob, zipfile
+          archive = glob.glob('target/tuack-ng-*.zip')[0]
+          names = zipfile.ZipFile(archive).namelist()
+          print(f"{archive}: {len(names)} entries")
+          print("\n".join(names[:30]))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-test-${{ matrix.name }}
+          path: |
+            target/tuack-ng-*.zip
+            target/debian/*.deb
+          if-no-files-found: ignore

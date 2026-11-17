@@ -1,2 +1,8 @@
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[alias]
+xtask = "run --quiet --locked --package tuack-xtask --"
