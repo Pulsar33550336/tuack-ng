@@ -1,0 +1,31 @@
+name: Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit
+  cancel-in-progress: true
+
+env:
+  CARGO_DENY_VERSION: 0.20.2
+
+jobs:
+  deny:
+    name: deny
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@${{ env.CARGO_DENY_VERSION }}
+
+      - name: Check dependencies
+        run: cargo deny check

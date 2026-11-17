@@ -1,0 +1,93 @@
+[advisories]
+version = 2
+yanked = "deny"
+ignore = [
+  # unmaintained
+  "RUSTSEC-2026-0374", # basic-toml
+  "RUSTSEC-2026-0543", # chrono
+  "RUSTSEC-2026-0542", # humantime
+  "RUSTSEC-2024-0436", # paste，cel-interpreter 0.10 的编译期依赖
+  "RUSTSEC-2024-0449", # unsafe-libyaml，serde_yaml 0.9 的依赖
+]
+
+[licenses]
+version = 2
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "MPL-2.0",
+  "CC0-1.0",
+  "Unlicense",
+  "0BSD",
+  "BSL-1.0",
+  "CDLA-Permissive-2.0",
+  "bzip2-1.0.6",
+  "AGPL-3.0-or-later",
+]
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+skip = [
+  { name = "base64", version = "=0.22.1" },
+  { name = "base64", version = "=0.23.1" },
+  { name = "block-buffer", version = "=0.10.4" },
+  { name = "block-buffer", version = "=0.12.1" },
+  { name = "cpufeatures", version = "=0.2.17" },
+  { name = "cpufeatures", version = "=0.3.1" },
+  { name = "crypto-common", version = "=0.1.7" },
+  { name = "crypto-common", version = "=0.2.2" },
+  { name = "digest", version = "=0.10.7" },
+  { name = "digest", version = "=0.11.3" },
+  { name = "getrandom", version = "=0.2.17" },
+  { name = "getrandom", version = "=0.3.4" },
+  { name = "getrandom", version = "=0.4.3" },
+  { name = "hashbrown", version = "=0.16.1" },
+  { name = "hashbrown", version = "=0.17.1" },
+  { name = "io-lifetimes", version = "=2.0.4" },
+  { name = "io-lifetimes", version = "=3.0.1" },
+  { name = "r-efi", version = "=5.3.0" },
+  { name = "r-efi", version = "=6.0.0" },
+  { name = "rand", version = "=0.10.3" },
+  { name = "rand", version = "=0.9.5" },
+  { name = "rand_core", version = "=0.10.1" },
+  { name = "rand_core", version = "=0.9.5" },
+  { name = "redox_users", version = "=0.4.6" },
+  { name = "redox_users", version = "=0.5.3" },
+  { name = "sha2", version = "=0.10.9" },
+  { name = "sha2", version = "=0.11.1" },
+  { name = "syn", version = "=1.0.109" },
+  { name = "syn", version = "=2.0.119" },
+  { name = "syn", version = "=3.0.9" },
+  { name = "thiserror", version = "=1.0.69" },
+  { name = "thiserror", version = "=2.0.21" },
+  { name = "thiserror-impl", version = "=1.0.69" },
+  { name = "thiserror-impl", version = "=2.0.21" },
+  { name = "toml", version = "=0.5.11" },
+  { name = "toml", version = "=0.9.12+spec-1.1.0" },
+  { name = "toml", version = "=1.1.8+spec-1.1.0" },
+  { name = "toml_datetime", version = "=0.7.5+spec-1.1.0" },
+  { name = "toml_datetime", version = "=1.1.2+spec-1.1.0" },
+  { name = "wasm-encoder", version = "=0.258.3" },
+  { name = "wasm-encoder", version = "=0.262.0" },
+  { name = "wast", version = "=262.0.0" },
+  { name = "wast", version = "=35.0.2" },
+  { name = "windows-sys", version = "=0.52.0" },
+  { name = "windows-sys", version = "=0.61.2" },
+  { name = "winnow", version = "=0.7.15" },
+  { name = "winnow", version = "=1.0.4" },
+  { name = "zstd", version = "=0.13.4" },
+  { name = "zstd", version = "=0.14.3" },
+  { name = "zstd-safe", version = "=7.4.0" },
+  { name = "zstd-safe", version = "=8.2.0" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
