@@ -154,6 +154,9 @@ fn stage(target: Target, sh: &Shell, testlib: Option<&Path>) -> Result<PathBuf> 
 
 fn package_deb(sh: &Shell, target: Target) -> Result<()> {
     let triple = target.to_string();
+    let output = workspace::root()
+        .join("target/debian")
+        .join(format!("tuack-ng-{}.deb", target.artifact_suffix()));
     let mut cmd = sh
         .cmd("cargo")
         .arg("deb")
@@ -162,7 +165,9 @@ fn package_deb(sh: &Shell, target: Target) -> Result<()> {
         .arg("-p")
         .arg("tuack-ng")
         .arg("--target")
-        .arg(&triple);
+        .arg(&triple)
+        .arg("--output")
+        .arg(&output);
     if target.is_musl() {
         cmd = cmd.arg("--variant=musl");
     }
@@ -228,6 +233,10 @@ fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
     fs::create_dir_all(dst).with_context(|| format!("无法创建 {}", dst.display()))?;
     for entry in fs::read_dir(src).with_context(|| format!("无法读取 {}", src.display()))? {
         let entry = entry?;
+        // 子模块的 .git 只是一个指向仓库的指针，打进产物没有意义。
+        if entry.file_name().as_os_str() == ".git" {
+            continue;
+        }
         let dst = dst.join(entry.file_name());
         if entry.file_type()?.is_dir() {
             copy_dir_all(&entry.path(), &dst)?;

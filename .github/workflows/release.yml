@@ -78,12 +78,6 @@ jobs:
       - name: Build deb
         run: just dist deb --libc "${{ matrix.libc }}"
 
-      - name: Rename deb
-        run: |
-          for f in target/debian/*.deb; do
-            mv "$f" "target/debian/tuack-ng-linux-${{ matrix.arch }}-${{ matrix.libc }}.deb"
-          done
-
       - uses: actions/upload-artifact@v4
         with:
           name: output-linux-zip-${{ matrix.arch }}-${{ matrix.libc }}
@@ -93,7 +87,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: output-linux-deb-${{ matrix.arch }}-${{ matrix.libc }}
-          path: target/debian/*.deb
+          path: target/debian/tuack-ng-*.deb
           retention-days: 7
 
   build-windows:
@@ -198,6 +192,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          fail_on_unmatched_files: true
           files: |
             ./output-linux-deb-*/*.deb
             ./output-linux-zip-*/*.zip
