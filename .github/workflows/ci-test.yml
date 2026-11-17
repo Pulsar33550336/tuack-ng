@@ -11,55 +11,160 @@ concurrency:
 
 jobs:
   dist:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64-glibc2.17
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.17"
+            deb: true
+            nix: false
+          - name: linux-x64-glibc2.28
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.28"
+            deb: true
+            nix: true
+          - name: linux-x64-glibc2.31
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.31"
+            deb: true
+            nix: false
+          - name: linux-x64-musl
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            glibc: "2.28"
+            deb: false
+            nix: false
+          - name: linux-arm64-glibc2.28
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            glibc: "2.28"
+            deb: true
+            nix: true
+          - name: linux-arm64-musl
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            glibc: "2.28"
+            deb: false
+            nix: false
+          - name: windows-x64
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+            glibc: "2.28"
+            deb: false
+            nix: false
+          - name: windows-arm64
+            os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            glibc: "2.28"
+            deb: false
+            nix: false
+
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - name: Show preinstalled toolchain
+      - name: Add Rust target
+        run: rustup target add "${{ matrix.target }}"
+
+      - name: Show toolchain
         run: |
           rustup show
           rustc --version
           cargo --version
-          g++ --version | head -1
-          dpkg-deb --version | head -1
-          unzip -v | head -1
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            g++ --version | head -1
+            dpkg-deb --version | head -1
+            unzip -v | head -1
+          fi
 
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.17.0
 
-      - uses: taiki-e/install-action@v2
+      - name: Install packaging tools
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@v2
         with:
           tool: cargo-zigbuild,cargo-deb
 
       - name: dist zip
-        run: cargo xtask dist --target x86_64-unknown-linux-gnu --platform zip
+        run: cargo xtask dist --target "${{ matrix.target }}" --glibc "${{ matrix.glibc }}" --platform zip
 
       - name: dist deb
-        run: cargo xtask dist --target x86_64-unknown-linux-gnu --platform deb
+        if: matrix.deb
+        run: cargo xtask dist --target "${{ matrix.target }}" --glibc "${{ matrix.glibc }}" --platform deb
 
       - name: dist nix
-        run: cargo xtask dist --target x86_64-unknown-linux-gnu --platform nix
+        if: matrix.nix
+        run: cargo xtask dist --target "${{ matrix.target }}" --glibc "${{ matrix.glibc }}" --platform nix
 
-      - name: Inspect artifacts
+      - name: Inspect (Linux)
+        if: runner.os == 'Linux'
         run: |
           set -eux
-          ls -l target/dist target/tuack-ng-*.zip target/debian/*.deb
+          ls -l target/dist target/tuack-ng-*.zip
           file target/dist/tuack-ng
           target/dist/tuack-ng --version
-          unzip -l target/tuack-ng-linux-x86_64.zip | head -30
-          dpkg-deb -I target/debian/*.deb
-          dpkg-deb -c target/debian/*.deb | grep -E 'usr/bin/tuack-ng|checkers/testlib.h|doc/tuack-ng/copyright'
-          test ! -e target/dist/assets/checkers/testlib.h
-          sudo dpkg -i target/debian/*.deb
-          tuack-ng --version
+
+          python3 - <<'PY'
+          import glob, zipfile
+          archive = glob.glob('target/tuack-ng-*.zip')[0]
+          names = zipfile.ZipFile(archive).namelist()
+          print(f"{archive}: {len(names)} entries")
+          print("\n".join(names[:30]))
+          PY
+
+          case "${{ matrix.target }}" in
+            *-gnu)
+              max=$(objdump -T target/dist/tuack-ng | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1 | sed 's/^GLIBC_//')
+              echo "max GLIBC symbol: $max"
+              test -n "$max"
+              dpkg --compare-versions "$max" le "${{ matrix.glibc }}"
+              ;;
+          esac
+
+          if [ "${{ matrix.deb }}" = "true" ]; then
+            dpkg-deb -I target/debian/*.deb
+            dpkg-deb -c target/debian/*.deb | grep -E 'usr/bin/tuack-ng|checkers/testlib.h|doc/tuack-ng/copyright'
+            sudo dpkg -i target/debian/*.deb
+            tuack-ng --version
+          fi
+
+          if [ "${{ matrix.nix }}" = "true" ]; then
+            test ! -e target/dist/assets/checkers/testlib.h
+          fi
+
+      - name: Inspect (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          set -eux
+          ls -l target/dist
+          target/dist/tuack-ng.exe --version
+          python - <<'PY'
+          import glob, zipfile
+          archive = glob.glob('target/tuack-ng-*.zip')[0]
+          names = zipfile.ZipFile(archive).namelist()
+          print(f"{archive}: {len(names)} entries")
+          print("\n".join(names[:30]))
+          PY
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dist-test
+          name: dist-test-${{ matrix.name }}
           path: |
             target/tuack-ng-*.zip
             target/debian/*.deb
+          if-no-files-found: ignore

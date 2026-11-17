@@ -27,6 +27,11 @@ impl Target {
         matches!(self.platform, Platform::Windows)
     }
 
+    /// 是否为 aarch64 目标。
+    pub fn is_aarch64(self) -> bool {
+        matches!(self.arch, Arch::Aarch64)
+    }
+
     /// 产物名中使用的平台与架构，例如 `linux-x86_64`；musl 目标附加 `-musl`。
     pub fn artifact_suffix(self) -> String {
         let platform = match self.platform {

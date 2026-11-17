@@ -5,7 +5,7 @@ use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
 use xshell::{Shell, cmd};
 use zip::write::SimpleFileOptions;
@@ -24,10 +24,10 @@ pub enum Platform {
 }
 
 /// 构建发布产物，并按平台打包。
-pub fn run(target: Target, platform: Platform) -> Result<()> {
+pub fn run(target: Target, platform: Platform, glibc: &str) -> Result<()> {
     let sh = Shell::new()?;
     build_checkers(target, platform)?;
-    build_binary(&sh, target)?;
+    build_binary(&sh, target, glibc)?;
 
     let testlib = match platform {
         Platform::Nix => None,
@@ -38,7 +38,7 @@ pub fn run(target: Target, platform: Platform) -> Result<()> {
     match platform {
         Platform::Nix => Ok(()),
         Platform::Zip => package_zip(&dist, target),
-        Platform::Deb => package_deb(&sh, target),
+        Platform::Deb => package_deb(&sh, target, glibc),
     }
 }
 
@@ -52,6 +52,18 @@ fn build_checkers(target: Target, platform: Platform) -> Result<()> {
             "-target".to_owned(),
             target.musl_zig_target(),
         ]
+    } else if target.is_windows() {
+        let arch = if target.is_aarch64() {
+            "aarch64"
+        } else {
+            "x86_64"
+        };
+        vec![
+            "zig".to_owned(),
+            "c++".to_owned(),
+            "-target".to_owned(),
+            format!("{arch}-windows-gnu"),
+        ]
     } else {
         vec!["g++".to_owned()]
     };
@@ -59,9 +71,9 @@ fn build_checkers(target: Target, platform: Platform) -> Result<()> {
     checkers::build_with(&checkers_dir, &testlib, &compiler, static_link)
 }
 
-fn build_binary(sh: &Shell, target: Target) -> Result<()> {
+fn build_binary(sh: &Shell, target: Target, glibc: &str) -> Result<()> {
     let build_target = if target.is_gnu() {
-        format!("{target}.2.28")
+        format!("{target}.{glibc}")
     } else {
         target.to_string()
     };
@@ -109,11 +121,15 @@ fn stage(target: Target, testlib: Option<&Path>) -> Result<PathBuf> {
     Ok(dist)
 }
 
-fn package_deb(sh: &Shell, target: Target) -> Result<()> {
+fn package_deb(sh: &Shell, target: Target, glibc: &str) -> Result<()> {
+    if !target.is_gnu() {
+        bail!("deb 仅支持 gnu 目标");
+    }
     let triple = target.to_string();
+    let variant = format!("glibc_{}", glibc.replace('.', "_"));
     cmd!(
         sh,
-        "cargo deb --no-build --no-strip -p tuack-ng --target {triple}"
+        "cargo deb --variant={variant} --no-build --no-strip -p tuack-ng --target {triple}"
     )
     .run()?;
     Ok(())

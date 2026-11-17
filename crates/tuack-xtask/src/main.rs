@@ -41,12 +41,15 @@ struct DistArgs {
     /// 打包平台
     #[arg(long, value_enum)]
     platform: Platform,
+    /// glibc 版本，仅 gnu 目标生效
+    #[arg(long, default_value = "2.28")]
+    glibc: String,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Commands::BuildCheckers(args) => checkers::build(args.static_link),
-        Commands::Dist(args) => dist::run(args.target, args.platform),
+        Commands::Dist(args) => dist::run(args.target, args.platform, &args.glibc),
     }
 }
