@@ -82,27 +82,21 @@ impl Target {
         format!("{platform}-{arch}{libc}")
     }
 
-    /// zig 编译 C++ 时使用的 glibc 目标，例如 `x86_64-linux-gnu.2.28`。
-    pub fn gnu_zig_target(self) -> String {
-        let arch = match self.arch {
-            Arch::X86_64 => "x86_64",
-            Arch::Aarch64 => "aarch64",
-        };
-        format!("{arch}-linux-gnu.{GLIBC_VERSION}")
-    }
-
-    /// zig 编译 C++ 时使用的 musl 目标，例如 `x86_64-linux-musl`。
+    /// zig 编译 C++ 时使用的 libc 目标，例如 `x86_64-linux-gnu.2.28`、`aarch64-linux-musl`。
     ///
     /// # Panics
     ///
-    /// 目标不是 musl 时 panic。
-    pub fn musl_zig_target(self) -> String {
-        assert!(self.is_musl(), "musl_zig_target 仅适用于 musl 目标");
+    /// Windows 目标不走 zig，此时 panic。
+    pub fn zig_target(self) -> String {
         let arch = match self.arch {
             Arch::X86_64 => "x86_64",
             Arch::Aarch64 => "aarch64",
         };
-        format!("{arch}-linux-musl")
+        match self.libc {
+            Libc::Gnu => format!("{arch}-linux-gnu.{GLIBC_VERSION}"),
+            Libc::Musl => format!("{arch}-linux-musl"),
+            Libc::Msvc => panic!("Windows 目标不使用 zig"),
+        }
     }
 }
 

@@ -70,17 +70,13 @@ fn build_checkers(target: Target, platform: Platform) -> Result<PathBuf> {
     let testlib = checkers::testlib_source();
     // Nix 由沙箱里的 g++ 编译，gnu 用 zig 固定到 glibc 2.28，musl 由 zig 默认静态，
     // Windows 走 MSVC 的静态 CRT。
-    let compiler = if target.is_musl() {
-        checkers::Compiler::Zig {
-            target: target.musl_zig_target(),
-        }
-    } else if target.is_windows() {
+    let compiler = if target.is_windows() {
         checkers::Compiler::Msvc
     } else if matches!(platform, Platform::Nix) {
         checkers::Compiler::Host
     } else {
         checkers::Compiler::Zig {
-            target: target.gnu_zig_target(),
+            target: target.zig_target(),
         }
     };
     checkers::build_with(&checkers_dir, &testlib, compiler)?;
