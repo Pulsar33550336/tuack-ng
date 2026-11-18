@@ -24,18 +24,11 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// 构建 Checker
-    BuildCheckers(BuildCheckersArgs),
+    BuildCheckers,
     /// 构建发布产物
     Dist(DistArgs),
     /// 校验提交信息
     CommitMsg(CommitMsgArgs),
-}
-
-#[derive(Debug, Args)]
-struct BuildCheckersArgs {
-    /// 静态链接 checker
-    #[arg(long = "static")]
-    static_link: bool,
 }
 
 #[derive(Debug, Args)]
@@ -62,7 +55,7 @@ struct DistArgs {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Commands::BuildCheckers(args) => checkers::build(args.static_link),
+        Commands::BuildCheckers => checkers::build(),
         Commands::Dist(args) => dist::run(args.platform, args.libc),
         Commands::CommitMsg(args) => match (args.path, args.range) {
             (Some(path), _) => commit_msg::run_file(&path),

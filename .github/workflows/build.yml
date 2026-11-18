@@ -94,11 +94,14 @@ jobs:
       - name: Add Rust target
         run: rustup target add "${{ matrix.target }}"
 
-      - uses: mlugg/setup-zig@v2
-        with:
-          version: ${{ env.ZIG_VERSION }}
-          # 不缓存全局 zig cache，否则每次运行都会新增一份带 run id 的条目
-          use-cache: false
+      # checker 用 MSVC 的静态 CRT 编译，需要 cl.exe 的环境
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
+
+      # Git 自带的 GNU link 会盖住 MSVC 的 link.exe，链接时报
+      # 「extra operand」。这是该 action 文档推荐的变通做法。
+      - name: Remove Git's link
+        shell: bash
+        run: rm -f "/c/Program Files/Git/usr/bin/link.exe"
 
       - uses: taiki-e/install-action@just
 

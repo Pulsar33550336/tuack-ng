@@ -10,27 +10,32 @@ use xshell::{Shell, cmd};
 use crate::workspace;
 
 /// 构建 `assets/checkers` 下的 checker，使用 `g++` 与默认 testlib。
-pub fn build(static_link: bool) -> Result<()> {
+pub fn build() -> Result<()> {
     let checkers_dir = workspace::root().join("assets/checkers");
-    let compiler = ["g++".to_owned()];
-    build_with(&checkers_dir, &testlib_source(), &compiler, static_link)
+    build_with(&checkers_dir, &testlib_source(), Compiler::Host)
+}
+
+/// C++ 编译器。
+pub enum Compiler {
+    /// 宿主 `g++`，本地开发与 Nix 构建用。
+    Host,
+    /// zig 交叉编译到指定的 C++ 三元组。
+    Zig {
+        /// zig 接收的 `-target {target}`
+        target: String,
+    },
+    /// MSVC 的 `cl.exe`，用 `/MT` 静态链接 CRT。
+    Msvc,
 }
 
 /// 构建 `checkers_dir` 下所有 checker。
 ///
 /// testlib.h 不复制到 `checkers_dir`，编译时用 `-I` 指向 `testlib` 所在目录。
-/// `compiler` 的首元素是程序，其余是基础参数；`static_link` 为真时给编译器加
-/// `-static`。
 ///
 /// # Errors
 ///
 /// testlib.h 缺失、目录不可读、编译器无法启动或编译失败时返回错误。
-pub fn build_with(
-    checkers_dir: &Path,
-    testlib: &Path,
-    compiler: &[String],
-    static_link: bool,
-) -> Result<()> {
+pub fn build_with(checkers_dir: &Path, testlib: &Path, compiler: Compiler) -> Result<()> {
     let testlib = std::path::absolute(testlib).context("无法解析 testlib.h 路径")?;
     if !testlib.is_file() {
         bail!("找不到 testlib.h：{}", testlib.display());
@@ -43,7 +48,7 @@ pub fn build_with(
     for entry in entries {
         let path = entry?.path();
         if path.is_file() && path.extension().is_some_and(|ext| ext == "cpp") {
-            compile(&sh, &path, compiler, include_dir, static_link)?;
+            compile(&sh, &path, &compiler, include_dir)?;
         }
     }
     Ok(())
@@ -75,29 +80,40 @@ pub fn testlib_source() -> PathBuf {
         .unwrap_or_else(|| workspace::root().join("vendor/testlib/testlib.h"))
 }
 
-fn compile(
-    sh: &Shell,
-    cpp: &Path,
-    compiler: &[String],
-    include_dir: &Path,
-    static_link: bool,
-) -> Result<()> {
+fn compile(sh: &Shell, cpp: &Path, compiler: &Compiler, include_dir: &Path) -> Result<()> {
     let exe = cpp.with_extension(env::consts::EXE_EXTENSION);
     if !needs_compile(cpp, &exe) {
         return Ok(());
     }
 
-    // 首元素是程序，其余是基础参数。
-    let (program, base_args) = compiler.split_first().context("编译器命令为空")?;
     let cpp_name = cpp.file_name().context("checker 源文件没有文件名")?;
     let exe_name = exe.file_name().context("checker 产物没有文件名")?;
-    let static_arg = static_link.then_some("-static");
     let _dir = sh.push_dir(cpp.parent().context("checker 源文件没有父目录")?);
-    cmd!(
-        sh,
-        "{program} {base_args...} -std=c++17 -O2 -I {include_dir} {cpp_name} -o {exe_name} {static_arg...}"
-    )
-    .run()?;
+    match compiler {
+        Compiler::Host => {
+            cmd!(
+                sh,
+                "g++ -std=c++17 -O2 -I {include_dir} {cpp_name} -o {exe_name}"
+            )
+            .run()?;
+        }
+        Compiler::Zig { target } => {
+            cmd!(
+                sh,
+                "zig c++ -target {target} -std=c++17 -O2 -I {include_dir} {cpp_name} -o {exe_name}"
+            )
+            .run()?;
+        }
+        Compiler::Msvc => {
+            let include = format!("/I{}", include_dir.display());
+            let output = format!("/Fe:{}", exe_name.to_string_lossy());
+            cmd!(
+                sh,
+                "cl /nologo /std:c++17 /O2 /EHsc /MT {include} {cpp_name} {output}"
+            )
+            .run()?;
+        }
+    }
     Ok(())
 }
 

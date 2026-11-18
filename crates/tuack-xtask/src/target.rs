@@ -6,6 +6,9 @@ use std::fmt;
 use anyhow::{Result, bail};
 use clap::ValueEnum;
 
+/// 发布产物面向的最低 glibc 版本。
+pub const GLIBC_VERSION: &str = "2.28";
+
 /// 发布构建目标。
 #[derive(Clone, Copy, Debug)]
 pub struct Target {
@@ -62,11 +65,6 @@ impl Target {
         matches!(self.platform, Platform::Windows)
     }
 
-    /// 是否为 aarch64 目标。
-    pub fn is_aarch64(self) -> bool {
-        matches!(self.arch, Arch::Aarch64)
-    }
-
     /// 产物名中使用的平台与架构，例如 `linux-x86_64`；musl 目标附加 `-musl`。
     pub fn artifact_suffix(self) -> String {
         let platform = match self.platform {
@@ -82,6 +80,15 @@ impl Target {
             _ => "",
         };
         format!("{platform}-{arch}{libc}")
+    }
+
+    /// zig 编译 C++ 时使用的 glibc 目标，例如 `x86_64-linux-gnu.2.28`。
+    pub fn gnu_zig_target(self) -> String {
+        let arch = match self.arch {
+            Arch::X86_64 => "x86_64",
+            Arch::Aarch64 => "aarch64",
+        };
+        format!("{arch}-linux-gnu.{GLIBC_VERSION}")
     }
 
     /// zig 编译 C++ 时使用的 musl 目标，例如 `x86_64-linux-musl`。

@@ -12,7 +12,7 @@ use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
 use crate::checkers;
-use crate::target::{LibcChoice, Target};
+use crate::target::{GLIBC_VERSION, LibcChoice, Target};
 use crate::workspace;
 
 /// 发布产物的打包平台。
@@ -68,44 +68,29 @@ fn build_checkers(target: Target, platform: Platform) -> Result<PathBuf> {
     }
 
     let testlib = checkers::testlib_source();
-    let compiler: Vec<String> = if target.is_musl() {
-        vec![
-            "zig".to_owned(),
-            "c++".to_owned(),
-            "-target".to_owned(),
-            target.musl_zig_target(),
-        ]
+    // Nix 由沙箱里的 g++ 编译，gnu 用 zig 固定到 glibc 2.28，musl 由 zig 默认静态，
+    // Windows 走 MSVC 的静态 CRT。
+    let compiler = if target.is_musl() {
+        checkers::Compiler::Zig {
+            target: target.musl_zig_target(),
+        }
     } else if target.is_windows() {
-        vec![
-            "zig".to_owned(),
-            "c++".to_owned(),
-            "-target".to_owned(),
-            format!(
-                "{}-windows-gnu",
-                if target.is_aarch64() {
-                    "aarch64"
-                } else {
-                    "x86_64"
-                }
-            ),
-        ]
+        checkers::Compiler::Msvc
+    } else if matches!(platform, Platform::Nix) {
+        checkers::Compiler::Host
     } else {
-        vec!["g++".to_owned()]
+        checkers::Compiler::Zig {
+            target: target.gnu_zig_target(),
+        }
     };
-    checkers::build_with(
-        &checkers_dir,
-        &testlib,
-        &compiler,
-        // Nix 下不应也无须静态链接
-        !matches!(platform, Platform::Nix),
-    )?;
+    checkers::build_with(&checkers_dir, &testlib, compiler)?;
     Ok(checkers_dir)
 }
 
 fn build_binary(sh: &Shell, target: Target, platform: Platform) -> Result<()> {
     let nix = matches!(platform, Platform::Nix);
     let build_target = if target.is_gnu() && !nix {
-        format!("{target}.2.28")
+        format!("{target}.{GLIBC_VERSION}")
     } else {
         target.to_string()
     };
@@ -155,8 +140,11 @@ fn stage(target: Target, sh: &Shell, testlib: Option<&Path>, checkers: &Path) ->
         .with_context(|| format!("无法读取 {}", checkers_dest.display()))?
     {
         let path = entry?.path();
-        // Windows 编译会留下 pdb 调试符号，产物里不需要
-        if path.extension().is_some_and(|ext| ext == "pdb") {
+        // Windows 编译会留下 pdb 调试符号与 obj，产物里不需要
+        if path
+            .extension()
+            .is_some_and(|ext| ext == "pdb" || ext == "obj")
+        {
             fs::remove_file(&path).with_context(|| format!("无法删除 {}", path.display()))?;
         }
     }
