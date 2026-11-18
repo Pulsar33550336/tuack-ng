@@ -54,6 +54,10 @@ jobs:
         with:
           submodules: true
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: msrv-${{ matrix.platform }}
+
       - name: Read the MSRV
         id: msrv
         shell: bash
