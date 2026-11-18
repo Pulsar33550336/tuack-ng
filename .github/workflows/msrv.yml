@@ -22,6 +22,8 @@ jobs:
     outputs:
       changed: ${{ steps.check.outputs.changed }}
     steps:
+      - uses: actions/checkout@v7
+
       - name: Check for new commits
         id: check
         env:
