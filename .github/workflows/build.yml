@@ -80,9 +80,11 @@ jobs:
         include:
           - runner: windows-2025
             arch: x86_64
+            msvc: x64
             target: x86_64-pc-windows-msvc
           - runner: windows-11-arm
             arch: arm64
+            msvc: arm64
             target: aarch64-pc-windows-msvc
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
@@ -96,6 +98,8 @@ jobs:
 
       # checker 用 MSVC 的静态 CRT 编译，需要 cl.exe 的环境
       - uses: ilammy/msvc-dev-cmd@v1.13.0
+        with:
+          arch: ${{ matrix.msvc }}
 
       # Git 自带的 GNU link 会盖住 MSVC 的 link.exe，链接时报
       # 「extra operand」。这是该 action 文档推荐的变通做法。
