@@ -49,23 +49,21 @@ pub fn build_with(
     Ok(())
 }
 
-#[allow(dead_code)]
-fn copy_testlib(checkers_dir: &Path) -> Result<()> {
-    let source = testlib_source();
-    let dest = checkers_dir.join("testlib.h");
-
+/// 把 `source` 处的 testlib.h 复制到 `dest`，内容一致时跳过。
+pub fn copy_testlib(source: &Path, dest: &Path) -> Result<()> {
     if !source.is_file() {
         bail!("找不到 testlib.h：{}", source.display());
     }
 
-    fs::create_dir_all(checkers_dir)
-        .with_context(|| format!("无法创建 {}", checkers_dir.display()))?;
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent).with_context(|| format!("无法创建 {}", parent.display()))?;
+    }
 
-    if dest.is_file() && fs::read(&source)? == fs::read(&dest)? {
+    if dest.is_file() && fs::read(source)? == fs::read(dest)? {
         return Ok(());
     }
 
-    fs::copy(&source, &dest)
+    fs::copy(source, dest)
         .with_context(|| format!("无法复制 {} 到 {}", source.display(), dest.display()))?;
     Ok(())
 }

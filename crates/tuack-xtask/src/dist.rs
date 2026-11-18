@@ -27,7 +27,7 @@ pub enum Platform {
 pub fn run(platform: Platform, libc: Option<LibcChoice>) -> Result<()> {
     let target = Target::from_host(libc)?;
     let sh = Shell::new()?;
-    build_checkers(target, platform)?;
+    let checkers = build_checkers(target, platform)?;
     build_binary(&sh, target, platform)?;
 
     // Nix 的 testlib 由 Nix 自行符号链接
@@ -35,7 +35,7 @@ pub fn run(platform: Platform, libc: Option<LibcChoice>) -> Result<()> {
         Platform::Nix => None,
         Platform::Zip | Platform::Deb => Some(checkers::testlib_source()),
     };
-    let dist = stage(target, &sh, testlib.as_deref())?;
+    let dist = stage(target, &sh, testlib.as_deref(), &checkers)?;
 
     match platform {
         Platform::Nix => {
@@ -47,8 +47,26 @@ pub fn run(platform: Platform, libc: Option<LibcChoice>) -> Result<()> {
     }
 }
 
-fn build_checkers(target: Target, platform: Platform) -> Result<()> {
-    let checkers_dir = workspace::root().join("assets/checkers");
+/// 把 checker 源码复制到 `target/checkers` 后编译，返回该目录。
+fn build_checkers(target: Target, platform: Platform) -> Result<PathBuf> {
+    let root = workspace::root();
+    let checkers_dir = root.join("target/checkers");
+    if checkers_dir.exists() {
+        fs::remove_dir_all(&checkers_dir)
+            .with_context(|| format!("无法清空 {}", checkers_dir.display()))?;
+    }
+    fs::create_dir_all(&checkers_dir)
+        .with_context(|| format!("无法创建 {}", checkers_dir.display()))?;
+    for entry in fs::read_dir(root.join("assets/checkers")).context("无法读取 assets/checkers")?
+    {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().is_some_and(|ext| ext == "cpp") {
+            fs::copy(&path, checkers_dir.join(entry.file_name()))
+                .with_context(|| format!("无法复制 {}", path.display()))?;
+        }
+    }
+
     let testlib = checkers::testlib_source();
     let compiler: Vec<String> = if target.is_musl() {
         vec![
@@ -80,7 +98,8 @@ fn build_checkers(target: Target, platform: Platform) -> Result<()> {
         &compiler,
         // Nix 下不应也无须静态链接
         !matches!(platform, Platform::Nix),
-    )
+    )?;
+    Ok(checkers_dir)
 }
 
 fn build_binary(sh: &Shell, target: Target, platform: Platform) -> Result<()> {
@@ -109,7 +128,7 @@ fn build_binary(sh: &Shell, target: Target, platform: Platform) -> Result<()> {
     Ok(())
 }
 
-fn stage(target: Target, sh: &Shell, testlib: Option<&Path>) -> Result<PathBuf> {
+fn stage(target: Target, sh: &Shell, testlib: Option<&Path>, checkers: &Path) -> Result<PathBuf> {
     let root = workspace::root();
     let dist = root.join("target/dist");
 
@@ -124,14 +143,31 @@ fn stage(target: Target, sh: &Shell, testlib: Option<&Path>) -> Result<PathBuf> 
 
     copy_dir_all(&root.join("assets"), &dist.join("assets"))?;
 
+    let checkers_dest = dist.join("assets/checkers");
+    if checkers_dest.exists() {
+        fs::remove_dir_all(&checkers_dest)
+            .with_context(|| format!("无法删除 {}", checkers_dest.display()))?;
+    }
+
+    copy_dir_all(checkers, &checkers_dest)?;
+
+    for entry in fs::read_dir(&checkers_dest)
+        .with_context(|| format!("无法读取 {}", checkers_dest.display()))?
+    {
+        let path = entry?.path();
+        // Windows 编译会留下 pdb 调试符号，产物里不需要
+        if path.extension().is_some_and(|ext| ext == "pdb") {
+            fs::remove_file(&path).with_context(|| format!("无法删除 {}", path.display()))?;
+        }
+    }
+
     let testlib_dest = dist.join("assets/checkers/testlib.h");
-    if let Some(testlib) = testlib {
-        fs::create_dir_all(testlib_dest.parent().expect("testlib.h 应有父目录"))?;
-        fs::copy(testlib, &testlib_dest)
-            .with_context(|| format!("无法复制 {}", testlib.display()))?;
-    } else if testlib_dest.exists() {
-        fs::remove_file(&testlib_dest)
-            .with_context(|| format!("无法删除 {}", testlib_dest.display()))?;
+    match testlib {
+        Some(testlib) => checkers::copy_testlib(testlib, &testlib_dest)?,
+        // Nix 的 testlib 由 Nix 自行符号链接，产物里不留
+        None if testlib_dest.exists() => fs::remove_file(&testlib_dest)
+            .with_context(|| format!("无法删除 {}", testlib_dest.display()))?,
+        None => {}
     }
 
     let license = root.join("LICENSE");
