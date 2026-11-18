@@ -60,6 +60,52 @@ jobs:
         if: github.event_name == 'push'
         run: cargo xtask commit-msg --range "${{ github.event.before }}..HEAD"
 
+  msrv:
+    name: msrv (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runner: windows-2025
+            platform: windows-x86_64
+          - runner: windows-11-arm
+            platform: windows-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Read the MSRV
+        id: msrv
+        shell: bash
+        run: |
+          version=$(cargo metadata --no-deps --locked --format-version 1 \
+            | jq -r '.packages[] | select(.name == "tuack-ng") | .rust_version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install the MSRV
+        shell: bash
+        run: rustup toolchain install "${{ steps.msrv.outputs.version }}" --profile minimal
+
+      # 缓存按当前 rustc 版本取 key，所以必须排在装好 MSRV 工具链之后。
+      - uses: Swatinem/rust-cache@v2
+        env:
+          RUSTUP_TOOLCHAIN: ${{ steps.msrv.outputs.version }}
+        with:
+          key: msrv-${{ matrix.platform }}
+          # PR 只读缓存，只有合进 master 的构建才写
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+
+      - name: Check with the MSRV
+        shell: bash
+        run: cargo "+${{ steps.msrv.outputs.version }}" check --workspace --all-targets --locked
+
   test:
     name: test (${{ matrix.platform }})
     strategy:
